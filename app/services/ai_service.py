@@ -1,43 +1,42 @@
+# app/services/ai_service.py
 import asyncio
 from google.genai import types
 import google.genai as genai
 import json
 from pydantic import BaseModel, ValidationError
-from app.models.graph import Node, Edge, RelationshipType
+from app.models.graph import Node, Edge
 from app.core.prompts import EXPAND_NODE_PROMPT
 
-# Pydantic models for parsing the specific JSON structure from the LLM
+# Pydantic models for parsing the specific JSON structure from the LLM.
+class AI_Node(BaseModel):
+    name: str
+    description: str
+
 class AI_Edge(BaseModel):
     source_is_original: bool
     target_node_index: int
-    label: RelationshipType
+    label: str
 
 class AI_Graph(BaseModel):
-    nodes: list[Node]
+    nodes: list[AI_Node]
     edges: list[AI_Edge]
 
 class AIService:
     def __init__(self, api_key: str):
-        # CORRECT: Initialize the client instance with the API key.
-        # This is the correct pattern for the google-genai SDK.
         self.client = genai.Client(api_key=api_key)
 
     async def generate_expansion(self, source_node: Node, context: str = "") -> tuple[list[Node], list[Edge]]:
         prompt = EXPAND_NODE_PROMPT.format(
             node_name=source_node.name,
             node_description=source_node.description,
-            node_galaxies=source_node.galaxies,
             existing_nodes_context=context
         )
 
-        # CORRECT: Use the full class name for the configuration object.
         generation_config = types.GenerateContentConfig(
             response_mime_type="application/json"
         )
 
         try:
-            # The SDK's generate_content method is synchronous (blocking).
-            # We must run it in a separate thread to avoid blocking our async application.
             response = await asyncio.to_thread(
                 self.client.models.generate_content,
                 model='gemini-flash-latest',
@@ -56,8 +55,9 @@ class AIService:
             print(f"An unexpected error occurred with the Gemini API: {e}")
             return [], []
 
-        # This conversion logic remains correct.
-        new_nodes = ai_graph.nodes
+        # Convert the AI's response models into our main application models
+        new_nodes = [Node(name=ai_node.name, description=ai_node.description) for ai_node in ai_graph.nodes]
+        
         new_edges = []
         for ai_edge in ai_graph.edges:
             if ai_edge.target_node_index >= len(new_nodes):

@@ -1,3 +1,4 @@
+# app/main.py
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
@@ -5,8 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j.exceptions import ServiceUnavailable
 
-from app.api.routers import graph as graph_router
-from app.api.routers import nodes as nodes_router
+from app.api import router as api_router # Updated import
 from app.db.driver import Neo4jDriver
 from app.core.exceptions import NodeNotFoundException
 from app.core.rag_config import VECTOR_DIMENSIONS
@@ -60,13 +60,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CS-Space API",
-    description="API for managing the CS-Space knowledge graph.",
-    version="0.1.0",
+    title="GenAI Graph Framework API", # Updated title
+    description="A generalized, AI-powered knowledge graph framework.", # Updated description
+    version="1.0.0",
     lifespan=lifespan
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -79,12 +78,12 @@ app.add_middleware(
 async def node_not_found_exception_handler(request: Request, exc: NodeNotFoundException):
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
-        content={"message": "One or more nodes were not found."},
+        content={"message": exc.message},
     )
 
-app.include_router(graph_router.router)
-app.include_router(nodes_router.router)
+# Include the single, unified router
+app.include_router(api_router.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the CS-Space API"}
+    return {"message": "Welcome to the GenAI Graph Framework API"}

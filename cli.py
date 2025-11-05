@@ -40,7 +40,6 @@ def tune_prompt(
 
 @cli_app.command()
 def test_expand(
-    user_id: str = typer.Option(..., "--user-id", "-u", help="The ID of the user."),
     node_id: UUID = typer.Option(..., "--node-id", "-n", help="The UUID of the node to expand."),
 ):
     """
@@ -77,11 +76,11 @@ def test_expand(
         excluded_ids.add(source_node.id)
         
         semantic_nodes = await repo.find_semantically_similar_nodes(
-        query_vector=source_node.embedding,
-        excluded_node_ids=list(excluded_ids),
-        threshold=SIMILARITY_THRESHOLD,
-        limit=MAX_SEMANTIC_CANDIDATES
-    )
+            query_vector=source_node.embedding,
+            excluded_node_ids=list(excluded_ids),
+            threshold=SIMILARITY_THRESHOLD,
+            limit=MAX_SEMANTIC_CANDIDATES
+        )
         console.print(f"[cyan]Found {len(semantic_nodes)} relevant nodes from vector index (semantic search).[/cyan]")
 
         # 3. Combine and Format
@@ -92,7 +91,7 @@ def test_expand(
             context_items = "\n".join([f"- {n.name}" for n in final_context_nodes])
             context_str = (
                 "To avoid creating duplicate concepts, be aware of these "
-                "semantically similar or directly related concepts that already exist in the user's graph:\n"
+                "semantically similar or directly related concepts that already exist in the graph:\n"
                 f"[yellow]{context_items}[/yellow]"
             )
         
