@@ -5,7 +5,7 @@ import google.genai as genai
 import json
 from pydantic import BaseModel, ValidationError
 from app.models.graph import Node, Edge
-from app.core.prompts import EXPAND_NODE_PROMPT
+from app.services.prompt_service import PromptService
 
 # Pydantic models for parsing the specific JSON structure from the LLM.
 class AI_Node(BaseModel):
@@ -22,11 +22,14 @@ class AI_Graph(BaseModel):
     edges: list[AI_Edge]
 
 class AIService:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, prompt_service: PromptService):
         self.client = genai.Client(api_key=api_key)
+        self.prompt_service = prompt_service
 
     async def generate_expansion(self, source_node: Node, context: str = "") -> tuple[list[Node], list[Edge]]:
-        prompt = EXPAND_NODE_PROMPT.format(
+        prompt_template = await self.prompt_service.get_prompt("expand-node")
+
+        prompt = prompt_template.format(
             node_name=source_node.name,
             node_description=source_node.description,
             existing_nodes_context=context

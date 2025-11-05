@@ -37,6 +37,7 @@ poetry.lock
 # Data volumes from local containers.
 # CRITICAL: This prevents the entire database from being committed.
 neo4j_data/
+app/data/
 
 # --- IDEs & OS ---
 # VSCode

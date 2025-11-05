@@ -104,8 +104,9 @@ class GraphRepository:
     async def delete_node_by_id(self, node_id: UUID) -> bool:
         query = "MATCH (n:Concept {id: $node_id}) DETACH DELETE n"
         async with self.driver.session() as session:
-            summary = await session.run(query, {"node_id": str(node_id)})
-            return summary.summary().counters.nodes_deleted > 0
+            result = await session.run(query, {"node_id": str(node_id)})
+            summary = await result.consume()
+            return summary.counters.nodes_deleted > 0
 
     async def delete_edge(self, edge: Edge) -> bool:
         # Simplified: No user check.

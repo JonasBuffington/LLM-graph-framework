@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI Graph Explorer</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Import Cytoscape.js and extensions from a CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="app-header">
+            <h1>GenAI Graph Explorer</h1>
+        </header>
+        <main class="app-main">
+            <aside class="side-panel panel-left">
+                <section class="panel-section">
+                    <h2>Workspace</h2>
+                    <button id="clear-graph-btn" class="btn primary">Clear Graph</button>
+                </section>
+                <section class="panel-section">
+                    <h2>Add Node</h2>
+                    <form id="add-node-form" class="panel-form">
+                        <label for="node-name">Name</label>
+                        <input type="text" id="node-name" name="name" required>
+                        <label for="node-description">Description</label>
+                        <textarea id="node-description" name="description" rows="4" required></textarea>
+                        <button type="submit" class="btn">Create Node</button>
+                    </form>
+                </section>
+            </aside>
+
+            <section class="graph-container">
+                <div id="cy"></div>
+                <div id="loading-overlay" class="hidden">
+                    <div class="spinner"></div>
+                    <p>Working…</p>
+                </div>
+            </section>
+
+            <aside class="side-panel panel-right">
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="details">Details</button>
+                    <button class="tab-btn" data-tab="prompt">Prompt</button>
+                </div>
+                <div class="panel-content">
+                    <div id="details-tab" class="tab-pane active">
+                        <section class="panel-section" id="details-panel">
+                            <h2>Node</h2>
+                            <p class="muted details-placeholder">Select a node to view its details.</p>
+                            <dl class="node-details hidden">
+                                <div>
+                                    <dt>Name</dt>
+                                    <dd id="detail-name"></dd>
+                                </div>
+                                <div>
+                                    <dt>Description</dt>
+                                    <dd id="detail-description"></dd>
+                                </div>
+                            </dl>
+                        </section>
+                        <section class="panel-section">
+                            <h2>Actions</h2>
+                            <div class="action-group">
+                                <button id="expand-node-btn" class="btn primary" disabled>Expand Node</button>
+                                <button id="delete-node-btn" class="btn danger" disabled>Delete Node</button>
+                            </div>
+                        </section>
+                    </div>
+                    <div id="prompt-tab" class="tab-pane">
+                        <section class="panel-section">
+                            <h2>Workspace Prompt</h2>
+                        </section>
+                        <section class="panel-section">
+                            <label for="prompt-text" class="panel-label">Prompt Template</label>
+                            <textarea id="prompt-text" rows="14"></textarea>
+                            <div class="prompt-actions">
+                                <div class="action-group">
+                                    <button id="reset-prompt-btn" class="btn secondary" disabled>Reset</button>
+                                    <button id="save-prompt-btn" class="btn primary" disabled>Save Prompt</button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+    <!-- Our application logic -->
+    <script src="script.js"></script>
+</body>
+</html>

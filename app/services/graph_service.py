@@ -9,6 +9,7 @@ from app.services.ai_service import AIService
 from app.services.embedding_service import EmbeddingService
 from app.core.rag_config import SIMILARITY_THRESHOLD, MAX_SEMANTIC_CANDIDATES
 from app.core.config import settings
+from app.services.prompt_service import PromptService
 
 def _get_embedding_text_for_node(node: Node) -> str:
     """Creates a rich, consistent text document for embedding."""
@@ -18,10 +19,14 @@ def _get_embedding_text_for_node(node: Node) -> str:
     )
 
 class GraphService:
-    def __init__(self, driver: AsyncDriver):
+    def __init__(self, driver: AsyncDriver, prompt_service: PromptService | None = None):
         self.repo = GraphRepository(driver)
         self.embedding_service = EmbeddingService(api_key=settings.GEMINI_API_KEY)
-        self.ai_service = AIService(api_key=settings.GEMINI_API_KEY)
+        self.prompt_service = prompt_service or PromptService()
+        self.ai_service = AIService(
+            api_key=settings.GEMINI_API_KEY,
+            prompt_service=self.prompt_service
+        )
 
     async def create_node(self, node_data: Node) -> Node:
         embedding_text = _get_embedding_text_for_node(node_data)

@@ -36,4 +36,8 @@ Respond with ONLY a valid JSON object in the following format:
 - "source_is_original" is a boolean. `true` if the source is the original node, `false` if the target is.
 - "target_node_index" is the 0-based index of the new node in the "nodes" list.
 - "label" is the relationship type as a string.
-"""
+""".strip()
+
+DEFAULT_PROMPTS = {
+    "expand-node": EXPAND_NODE_PROMPT,
+}

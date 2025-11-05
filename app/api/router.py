@@ -2,17 +2,26 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, status, HTTPException, Response
 from app.models.graph import Node, Graph, Edge, NodeUpdate
+from app.models.prompt import PromptDocument, PromptUpdate
 from app.services.graph_service import GraphService
 from app.db.driver import get_db_driver
 from neo4j import AsyncDriver
 from app.core.exceptions import NodeNotFoundException
+from app.services.prompt_service import PromptService
 
 # This single router will handle all API endpoints for the skeleton.
 router = APIRouter()
+prompt_service = PromptService()
 
 # Dependency provider for the GraphService
-def get_service(driver: AsyncDriver = Depends(get_db_driver)) -> GraphService:
-    return GraphService(driver)
+def get_prompt_service() -> PromptService:
+    return prompt_service
+
+def get_service(
+    driver: AsyncDriver = Depends(get_db_driver),
+    prompt_service: PromptService = Depends(get_prompt_service)
+) -> GraphService:
+    return GraphService(driver, prompt_service)
 
 @router.get("/graph", response_model=Graph, tags=["Graph"])
 async def get_full_graph(service: GraphService = Depends(get_service)):
@@ -84,3 +93,34 @@ async def delete_edge(edge: Edge, service: GraphService = Depends(get_service)):
     if not await service.delete_edge(edge):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Edge not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.get("/prompts/{prompt_key}", response_model=PromptDocument, tags=["Prompts"])
+async def get_prompt(
+    prompt_key: str,
+    prompt_service: PromptService = Depends(get_prompt_service)
+):
+    """Retrieve a workspace-level prompt template."""
+    normalized_key = prompt_service.normalize_key(prompt_key)
+    try:
+        prompt_text = await prompt_service.get_prompt(normalized_key)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prompt not found")
+
+    return PromptDocument(key=normalized_key, prompt=prompt_text)
+
+@router.put("/prompts/{prompt_key}", response_model=PromptDocument, tags=["Prompts"])
+async def update_prompt(
+    prompt_key: str,
+    prompt_update: PromptUpdate,
+    prompt_service: PromptService = Depends(get_prompt_service)
+):
+    """Update a workspace-level prompt template."""
+    normalized_key = prompt_service.normalize_key(prompt_key)
+    try:
+        updated_prompt = await prompt_service.upsert_prompt(normalized_key, prompt_update.prompt)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prompt not found")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    return PromptDocument(key=normalized_key, prompt=updated_prompt)

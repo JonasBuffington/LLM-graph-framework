@@ -1,0 +1,352 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #1d1d1f;
+    background: #f5f6f8;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-header {
+    background: #fff;
+    color: #1d1d1f;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #d4d8e0;
+    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.app-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 360px;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    align-items: stretch;
+}
+
+.side-panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 6px 18px rgba(26, 33, 68, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-height: 0;
+}
+
+.panel-section h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #101623;
+}
+
+.panel-section p {
+    margin: 0;
+}
+
+.panel-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.panel-form label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #5f6673;
+}
+
+.panel-form input,
+.panel-form textarea,
+.panel-form select {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #d4d8e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+.panel-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #5f6673;
+    margin-bottom: 0.5rem;
+}
+
+.panel-form input:focus,
+.panel-form textarea:focus,
+.panel-form select:focus {
+    border-color: #4b63ff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(75, 99, 255, 0.12);
+}
+
+#prompt-text {
+    width: 100%;
+    min-height: 260px;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid #d4d8e0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.5;
+    resize: vertical;
+    background: #f9fafc;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+#prompt-text:focus {
+    border-color: #4b63ff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(75, 99, 255, 0.12);
+}
+
+#prompt-text::selection {
+    background: rgba(75, 99, 255, 0.2);
+}
+
+.graph-container {
+    position: relative;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(26, 33, 68, 0.06);
+    overflow: hidden;
+}
+
+#cy {
+    width: 100%;
+    height: 100%;
+}
+
+#loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(16, 22, 35, 0.45);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+#loading-overlay.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.panel-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: #eef1f7;
+    padding: 0.35rem;
+    border-radius: 10px;
+}
+
+.tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #5f6673;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tab-btn.active {
+    background: #fff;
+    color: #1d1d1f;
+    box-shadow: 0 4px 12px rgba(26, 33, 68, 0.09);
+}
+
+.panel-content {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.action-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.prompt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.prompt-actions .action-group {
+    margin-left: 0;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    border: none;
+    background: #e3e7f2;
+    color: #1d1d1f;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+    background: #d4daf0;
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn.primary {
+    background: #4b63ff;
+    color: #fff;
+}
+
+.btn.primary:hover:not(:disabled) {
+    background: #3748d4;
+}
+
+.btn.secondary {
+    background: #fff;
+    border: 1px solid #d4d8e0;
+}
+
+.btn.secondary:hover:not(:disabled) {
+    border-color: #b6bdcd;
+}
+
+.btn.danger {
+    background: #f45b69;
+    color: #fff;
+}
+
+.btn.danger:hover:not(:disabled) {
+    background: #cf4854;
+}
+
+.muted {
+    color: #7c8496;
+    font-size: 0.9rem;
+}
+
+#prompt-status {
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+#prompt-status.status-success {
+    color: #16a34a;
+}
+
+#prompt-status.status-warning {
+    color: #f97316;
+}
+
+#prompt-status.status-error {
+    color: #dc2626;
+}
+
+#details-panel {
+    margin-bottom: 1.5rem;
+}
+
+.node-details dt {
+    font-weight: 600;
+    color: #5f6673;
+    margin-bottom: 0.35rem;
+}
+
+.node-details dd {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #1d1d1f;
+}
+
+.node-details.hidden {
+    display: none;
+}
+
+@media (max-width: 1200px) {
+    .app-main {
+        grid-template-columns: 260px minmax(0, 1fr) 320px;
+    }
+}
+
+@media (max-width: 980px) {
+    .app-main {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+    }
+
+    .panel-left,
+    .panel-right {
+        order: 1;
+    }
+
+    .graph-container {
+        order: 0;
+        min-height: 60vh;
+    }
+}
