@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         details: document.getElementById('details-tab'),
         prompt: document.getElementById('prompt-tab')
     };
+    const serviceStatusBanner = document.getElementById('service-status');
+    let backendOnline = true;
 
     const textMetrics = (() => {
         const context = document.createElement('canvas').getContext('2d');
@@ -435,6 +437,24 @@ document.addEventListener('DOMContentLoaded', () => {
         resetPromptButton.disabled = !isDirty;
     }
 
+    function setServiceStatus(isOnline, message = 'Backend is waking up…') {
+        if (!serviceStatusBanner) {
+            return;
+        }
+        if (isOnline) {
+            if (backendOnline) {
+                return;
+            }
+            backendOnline = true;
+            serviceStatusBanner.classList.add('hidden');
+            serviceStatusBanner.textContent = '';
+        } else {
+            backendOnline = false;
+            serviceStatusBanner.textContent = message;
+            serviceStatusBanner.classList.remove('hidden');
+        }
+    }
+
     async function request(path, options = {}) {
         const config = {
             method: options.method || 'GET',
@@ -448,12 +468,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const response = await fetch(`${API_BASE_URL}${path}`, config);
+        let response;
+        try {
+            response = await fetch(`${API_BASE_URL}${path}`, config);
+        } catch (error) {
+            setServiceStatus(false, 'Backend is waking up… please retry in a few seconds.');
+            throw error;
+        }
 
         if (!response.ok) {
+            if (response.status >= 500) {
+                setServiceStatus(false, 'Backend issue detected… attempting to recover.');
+            }
             const message = await response.text();
             throw new Error(message || `Request failed with status ${response.status}`);
         }
+        setServiceStatus(true);
 
         if (response.status === 204) {
             return null;
