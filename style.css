@@ -32,6 +32,9 @@ body, html {
 }
 
 .status-banner {
+    position: sticky;
+    top: 0;
+    z-index: 100;
     background: #fff6d8;
     color: #92400e;
     text-align: center;

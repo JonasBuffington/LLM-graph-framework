@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'http://localhost:8000'
         : 'https://llm-graph-framework.onrender.com';
     const PROMPT_KEY = 'expand-node';
+    const BACKEND_WAKE_MESSAGE = 'Backend is waking up… please retry in ~30 seconds.';
 
     const overlay = document.getElementById('loading-overlay');
     const overlayMessage = overlay.querySelector('p');
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const serviceStatusBanner = document.getElementById('service-status');
     let backendOnline = true;
+    let healthCheckIntervalId = null;
 
     const textMetrics = (() => {
         const context = document.createElement('canvas').getContext('2d');
@@ -437,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetPromptButton.disabled = !isDirty;
     }
 
-    function setServiceStatus(isOnline, message = 'Backend is waking up…') {
+    function setServiceStatus(isOnline, message = BACKEND_WAKE_MESSAGE) {
         if (!serviceStatusBanner) {
             return;
         }
@@ -448,11 +450,38 @@ document.addEventListener('DOMContentLoaded', () => {
             backendOnline = true;
             serviceStatusBanner.classList.add('hidden');
             serviceStatusBanner.textContent = '';
+            if (healthCheckIntervalId) {
+                clearInterval(healthCheckIntervalId);
+                healthCheckIntervalId = null;
+            }
         } else {
             backendOnline = false;
             serviceStatusBanner.textContent = message;
             serviceStatusBanner.classList.remove('hidden');
+            if (!healthCheckIntervalId) {
+                healthCheckIntervalId = setInterval(async () => {
+                    const recovered = await evaluateHealthStatus();
+                    if (recovered) {
+                        clearInterval(healthCheckIntervalId);
+                        healthCheckIntervalId = null;
+                    }
+                }, 10000);
+            }
         }
+    }
+
+    async function evaluateHealthStatus(message = BACKEND_WAKE_MESSAGE) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+            if (response.ok) {
+                setServiceStatus(true);
+                return true;
+            }
+        } catch (error) {
+            // swallow error; status update happens below
+        }
+        setServiceStatus(false, message);
+        return false;
     }
 
     async function request(path, options = {}) {
@@ -472,8 +501,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             response = await fetch(`${API_BASE_URL}${path}`, config);
         } catch (error) {
-            setServiceStatus(false, 'Backend is waking up… please retry in a few seconds.');
-            throw error;
+            setServiceStatus(false, BACKEND_WAKE_MESSAGE);
+            throw new Error(BACKEND_WAKE_MESSAGE);
         }
 
         if (!response.ok) {
@@ -508,6 +537,9 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
         }
     }
+
+    // Initial health check to surface banner immediately if backend is sleeping
+    evaluateHealthStatus('Connecting to backend…');
 
     function showLoading(message = 'Working…') {
         overlayMessage.textContent = message;
