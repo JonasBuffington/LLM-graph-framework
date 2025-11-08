@@ -4,7 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'http://localhost:8000'
         : 'https://llm-graph-framework.onrender.com';
     const PROMPT_KEY = 'expand-node';
-    const BACKEND_WAKE_MESSAGE = 'Backend is waking up… please retry in ~30 seconds.';
+    const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
+    const BACKEND_STATUS_POLL_INTERVAL = 10000;
 
     const overlay = document.getElementById('loading-overlay');
     const overlayMessage = overlay.querySelector('p');
@@ -24,9 +25,21 @@ document.addEventListener('DOMContentLoaded', () => {
         details: document.getElementById('details-tab'),
         prompt: document.getElementById('prompt-tab')
     };
-    const serviceStatusBanner = document.getElementById('service-status');
-    let backendOnline = true;
-    let healthCheckIntervalId = null;
+    const overlayState = {
+        taskDepth: 0,
+        taskMessage: 'Working…',
+        backend: { active: false, message: '' },
+        transient: { active: false, message: '', timeoutId: null }
+    };
+
+    const backendWaitState = {
+        active: false,
+        timerId: null,
+        startTime: null,
+        baseMessage: 'Spinning up backend…'
+    };
+
+    let backendHealthCheckIntervalId = null;
 
     const textMetrics = (() => {
         const context = document.createElement('canvas').getContext('2d');
@@ -429,59 +442,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyPrompt(promptText) {
         promptSnapshot = promptText || '';
         promptTextarea.value = promptSnapshot;
-        updatePromptActions({ silent: true });
+        updatePromptActions();
     }
 
-    function updatePromptActions(options = {}) {
+    function updatePromptActions() {
         const isDirty = promptTextarea.value !== promptSnapshot;
 
         savePromptButton.disabled = !isDirty;
         resetPromptButton.disabled = !isDirty;
     }
 
-    function setServiceStatus(isOnline, message = BACKEND_WAKE_MESSAGE) {
-        if (!serviceStatusBanner) {
-            return;
+    async function evaluateHealthStatus(messagePrefix = 'Spinning up backend…') {
+        const isOnline = await pingBackend();
+        if (!isOnline) {
+            beginBackendRecovery(messagePrefix);
         }
-        if (isOnline) {
-            if (backendOnline) {
-                return;
-            }
-            backendOnline = true;
-            serviceStatusBanner.classList.add('hidden');
-            serviceStatusBanner.textContent = '';
-            if (healthCheckIntervalId) {
-                clearInterval(healthCheckIntervalId);
-                healthCheckIntervalId = null;
-            }
-        } else {
-            backendOnline = false;
-            serviceStatusBanner.textContent = message;
-            serviceStatusBanner.classList.remove('hidden');
-            if (!healthCheckIntervalId) {
-                healthCheckIntervalId = setInterval(async () => {
-                    const recovered = await evaluateHealthStatus();
-                    if (recovered) {
-                        clearInterval(healthCheckIntervalId);
-                        healthCheckIntervalId = null;
-                    }
-                }, 10000);
-            }
-        }
-    }
-
-    async function evaluateHealthStatus(message = BACKEND_WAKE_MESSAGE) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
-            if (response.ok) {
-                setServiceStatus(true);
-                return true;
-            }
-        } catch (error) {
-            // swallow error; status update happens below
-        }
-        setServiceStatus(false, message);
-        return false;
+        return isOnline;
     }
 
     async function request(path, options = {}) {
@@ -501,18 +477,18 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             response = await fetch(`${API_BASE_URL}${path}`, config);
         } catch (error) {
-            setServiceStatus(false, BACKEND_WAKE_MESSAGE);
-            throw new Error(BACKEND_WAKE_MESSAGE);
+            beginBackendRecovery('Backend is waking up… please hold tight.');
+            throw new Error('Backend is waking up… please hold tight.');
         }
 
         if (!response.ok) {
             if (response.status >= 500) {
-                setServiceStatus(false, 'Backend issue detected… attempting to recover.');
+                beginBackendRecovery('Backend issue detected… attempting to recover.');
             }
             const message = await response.text();
             throw new Error(message || `Request failed with status ${response.status}`);
         }
-        setServiceStatus(true);
+        markBackendOnline();
 
         if (response.status === 204) {
             return null;
@@ -532,22 +508,128 @@ document.addEventListener('DOMContentLoaded', () => {
             await task();
         } catch (error) {
             console.error(error);
-            alert(error.message || 'Something went wrong. Check the console for details.');
+            showTransientStatus(error.message || 'Something went wrong. Check the console for details.');
         } finally {
             hideLoading();
         }
     }
 
-    // Initial health check to surface banner immediately if backend is sleeping
+    // Initial health check to surface spinner immediately if backend is sleeping
     evaluateHealthStatus('Connecting to backend…');
 
     function showLoading(message = 'Working…') {
-        overlayMessage.textContent = message;
-        overlay.classList.remove('hidden');
+        overlayState.taskDepth += 1;
+        overlayState.taskMessage = message;
+        refreshOverlay();
     }
 
     function hideLoading() {
+        overlayState.taskDepth = Math.max(0, overlayState.taskDepth - 1);
+        refreshOverlay();
+    }
+
+    function showTransientStatus(message, duration = 3000) {
+        if (overlayState.transient.timeoutId) {
+            clearTimeout(overlayState.transient.timeoutId);
+        }
+        overlayState.transient.active = true;
+        overlayState.transient.message = message;
+        overlayState.transient.timeoutId = setTimeout(() => {
+            overlayState.transient.active = false;
+            overlayState.transient.timeoutId = null;
+            refreshOverlay();
+        }, duration);
+        refreshOverlay();
+    }
+
+    function refreshOverlay() {
+        if (overlayState.taskDepth > 0) {
+            overlayMessage.textContent = overlayState.taskMessage;
+            overlay.classList.remove('hidden');
+            return;
+        }
+        if (overlayState.backend.active) {
+            overlayMessage.textContent = overlayState.backend.message;
+            overlay.classList.remove('hidden');
+            return;
+        }
+        if (overlayState.transient.active) {
+            overlayMessage.textContent = overlayState.transient.message;
+            overlay.classList.remove('hidden');
+            return;
+        }
         overlay.classList.add('hidden');
         overlayMessage.textContent = 'Working…';
+    }
+
+    function beginBackendRecovery(messagePrefix = 'Spinning up backend…') {
+        startBackendWait(messagePrefix);
+        if (backendHealthCheckIntervalId) {
+            return;
+        }
+        backendHealthCheckIntervalId = setInterval(async () => {
+            const recovered = await pingBackend();
+            if (recovered) {
+                clearInterval(backendHealthCheckIntervalId);
+                backendHealthCheckIntervalId = null;
+            }
+        }, BACKEND_STATUS_POLL_INTERVAL);
+    }
+
+    function startBackendWait(messagePrefix) {
+        backendWaitState.baseMessage = messagePrefix;
+        if (!backendWaitState.active) {
+            backendWaitState.active = true;
+            backendWaitState.startTime = Date.now();
+            backendWaitState.timerId = setInterval(updateBackendWaitMessage, 1000);
+        }
+        updateBackendWaitMessage();
+    }
+
+    function updateBackendWaitMessage() {
+        if (!backendWaitState.active) {
+            return;
+        }
+        const elapsedSeconds = Math.round((Date.now() - backendWaitState.startTime) / 1000);
+        const estimate = BACKEND_ESTIMATED_SPINUP_SECONDS;
+        const message = `${backendWaitState.baseMessage} ${elapsedSeconds}s / ~${estimate}s`;
+        overlayState.backend.active = true;
+        overlayState.backend.message = message;
+        refreshOverlay();
+    }
+
+    function stopBackendWait() {
+        if (!backendWaitState.active) {
+            return;
+        }
+        backendWaitState.active = false;
+        if (backendWaitState.timerId) {
+            clearInterval(backendWaitState.timerId);
+            backendWaitState.timerId = null;
+        }
+        overlayState.backend.active = false;
+        overlayState.backend.message = '';
+        refreshOverlay();
+    }
+
+    async function pingBackend() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+            if (response.ok) {
+                markBackendOnline();
+                return true;
+            }
+        } catch (error) {
+            // swallow; handled by caller
+        }
+        return false;
+    }
+
+    function markBackendOnline() {
+        stopBackendWait();
+        if (backendHealthCheckIntervalId) {
+            clearInterval(backendHealthCheckIntervalId);
+            backendHealthCheckIntervalId = null;
+        }
     }
 });

@@ -31,19 +31,6 @@ body, html {
     font-weight: 600;
 }
 
-.status-banner {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: #fff6d8;
-    color: #92400e;
-    text-align: center;
-    padding: 0.65rem 1rem;
-    border-bottom: 1px solid #f4d38c;
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
 .app-main {
     flex: 1;
     display: grid;
