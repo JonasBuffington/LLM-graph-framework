@@ -42,17 +42,3 @@ poetry run uvicorn app.main:app --reload
 cd frontend && python -m http.server 8080
 ```
 When the frontend is on `localhost`, it calls the local API. Any other origin (e.g., GitHub Pages) automatically uses the Render URL.
-
-## Deploying
-- Backend: Dockerfile → Render Web Service (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`). Env vars (Neo4j creds + Gemini key) live in the Render dashboard.
-- Database: Neo4j Aura free tier (`neo4j+s://` URI). Startup script verifies connectivity and creates the vector index if missing.
-- Frontend: `frontend/` published via `gh-pages`.
-
-## Handy tools
-- `cli.py test-expand --node-id <uuid>` runs the same retrieval + Gemini pipeline from the terminal so you can inspect the context and AI output without the UI.
-
-## TODO ideas
-- Protect the public API (shared secret or auth).
-- Separate workspaces / per-user graphs.
-- Bulk reset/seed endpoint instead of deleting node-by-node.
-- Smoke tests + CI once the surface area grows.
