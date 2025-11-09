@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const PROMPT_KEY = 'expand-node';
     const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
     const BACKEND_STATUS_POLL_INTERVAL = 10000;
-    const HEALTH_READINESS_POLL_DELAY = 2000;
 
     const overlay = document.getElementById('loading-overlay');
     const overlayMessage = overlay.querySelector('p');
@@ -30,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         taskDepth: 0,
         taskMessage: 'Working…',
         backend: { active: false, message: '' },
-        database: { active: false, message: '' },
         transient: { active: false, message: '', timeoutId: null }
     };
 
@@ -41,16 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         baseMessage: 'Spinning up backend…'
     };
 
-    const databaseWaitState = {
-        active: false,
-        timerId: null,
-        startTime: null,
-        baseMessage: 'Waiting for database…'
-    };
-
     let backendHealthCheckIntervalId = null;
-
-    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const textMetrics = (() => {
         const context = document.createElement('canvas').getContext('2d');
@@ -265,22 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cy.on('mouseover', 'edge', () => document.getElementById('cy').style.cursor = 'pointer');
     cy.on('mouseout', 'edge', () => document.getElementById('cy').style.cursor = 'default');
 
-    waitForFullReadiness()
-        .then(() => bootstrapWorkspace())
-        .catch((error) => {
-            console.error('Failed to initialize workspace:', error);
-            showTransientStatus('Unable to load workspace. Please refresh.', 5000);
-        });
-
-    async function waitForFullReadiness() {
-        while (true) {
-            const ready = await evaluateHealthStatus('Connecting to backend…');
-            if (ready) {
-                return;
-            }
-            await delay(HEALTH_READINESS_POLL_DELAY);
-        }
-    }
+    bootstrapWorkspace();
 
     async function bootstrapWorkspace() {
         await runTask('Loading workspace…', async () => {
@@ -479,19 +453,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function evaluateHealthStatus(messagePrefix = 'Spinning up backend…') {
-        const status = await checkBackendStatus();
-        if (!status.online) {
+        const isOnline = await pingBackend();
+        if (!isOnline) {
             beginBackendRecovery(messagePrefix);
-            return false;
         }
-        markBackendOnline();
-        if (!status.neo4jReady) {
-            startDatabaseWait();
-            return false;
-        }
-        stopDatabaseWait();
-        stopBackendRecoveryPolling();
-        return true;
+        return isOnline;
     }
 
     async function request(path, options = {}) {
@@ -548,6 +514,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Initial health check to surface spinner immediately if backend is sleeping
+    evaluateHealthStatus('Connecting to backend…');
+
     function showLoading(message = 'Working…') {
         overlayState.taskDepth += 1;
         overlayState.taskMessage = message;
@@ -584,11 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay.classList.remove('hidden');
             return;
         }
-        if (overlayState.database.active) {
-            overlayMessage.textContent = overlayState.database.message;
-            overlay.classList.remove('hidden');
-            return;
-        }
         if (overlayState.transient.active) {
             overlayMessage.textContent = overlayState.transient.message;
             overlay.classList.remove('hidden');
@@ -599,22 +563,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function beginBackendRecovery(messagePrefix = 'Spinning up backend…') {
-        stopDatabaseWait();
         startBackendWait(messagePrefix);
         if (backendHealthCheckIntervalId) {
             return;
         }
         backendHealthCheckIntervalId = setInterval(async () => {
-            const status = await checkBackendStatus();
-            if (!status.online) {
-                return;
-            }
-            markBackendOnline();
-            if (status.neo4jReady) {
-                stopDatabaseWait();
-                stopBackendRecoveryPolling();
-            } else {
-                startDatabaseWait();
+            const recovered = await pingBackend();
+            if (recovered) {
+                clearInterval(backendHealthCheckIntervalId);
+                backendHealthCheckIntervalId = null;
             }
         }, BACKEND_STATUS_POLL_INTERVAL);
     }
@@ -655,70 +612,24 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshOverlay();
     }
 
-    function startDatabaseWait(messagePrefix = 'Waiting for database…') {
-        databaseWaitState.baseMessage = messagePrefix;
-        if (!databaseWaitState.active) {
-            databaseWaitState.active = true;
-            databaseWaitState.startTime = Date.now();
-            databaseWaitState.timerId = setInterval(updateDatabaseWaitMessage, 1000);
+    async function pingBackend() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
+            if (response.ok) {
+                markBackendOnline();
+                return true;
+            }
+        } catch (error) {
+            // swallow; handled by caller
         }
-        updateDatabaseWaitMessage();
-    }
-
-    function updateDatabaseWaitMessage() {
-        if (!databaseWaitState.active) {
-            return;
-        }
-        const elapsedSeconds = Math.round((Date.now() - databaseWaitState.startTime) / 1000);
-        const message = `${databaseWaitState.baseMessage} ${elapsedSeconds}s elapsed`;
-        overlayState.database.active = true;
-        overlayState.database.message = message;
-        refreshOverlay();
-    }
-
-    function stopDatabaseWait() {
-        if (!databaseWaitState.active) {
-            return;
-        }
-        databaseWaitState.active = false;
-        if (databaseWaitState.timerId) {
-            clearInterval(databaseWaitState.timerId);
-            databaseWaitState.timerId = null;
-        }
-        overlayState.database.active = false;
-        overlayState.database.message = '';
-        refreshOverlay();
+        return false;
     }
 
     function markBackendOnline() {
         stopBackendWait();
-    }
-
-    function stopBackendRecoveryPolling() {
         if (backendHealthCheckIntervalId) {
             clearInterval(backendHealthCheckIntervalId);
             backendHealthCheckIntervalId = null;
-        }
-    }
-
-    async function checkBackendStatus() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
-            if (!response.ok) {
-                return { online: false, neo4jReady: false };
-            }
-            let payload = {};
-            try {
-                payload = await response.json();
-            } catch {
-                payload = {};
-            }
-            const neo4jReady = Boolean(
-                payload?.neo4j_ready ?? payload?.neo4jReady ?? false
-            );
-            return { online: true, neo4jReady };
-        } catch (error) {
-            return { online: false, neo4jReady: false };
         }
     }
 });
