@@ -346,18 +346,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const layout = cy.layout({
             name: 'dagre',
-            fit,
-            animate: true,
-            animationDuration: 450,
-            nodeDimensionsIncludeLabels: true,
-            rankDir: 'TB',
-            ranker: 'tight-tree',
-            rankSep: 200,
-            nodeSep: 35,
-            edgeSep: 35,
-            padding: 30,
-            spacingFactor: 1.1,
-            roots: rootIds
+            // fit,
+            // animate: true,
+            // animationDuration: 450,
+            // nodeDimensionsIncludeLabels: true,
+            // rankDir: 'TB',
+            // ranker: 'tight-tree',
+            // rankSep: 200,
+            // nodeSep: 35,
+            // edgeSep: 35,
+            // padding: 30,
+            // spacingFactor: 1.1,
+            // roots: rootIds
         });
 
         layout.run();
