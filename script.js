@@ -352,10 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
             nodeDimensionsIncludeLabels: true,
             rankDir: 'TB',
             rankSep: 140,
-            nodeSep: 50,
+            // nodeSep: 50,
             // edgeSep: 50,
             // padding: 120,
-            spacingFactor: 1.1,
+            // spacingFactor: 1.1,
             roots: rootIds
         });
 
