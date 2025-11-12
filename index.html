@@ -7,9 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <!-- Import Cytoscape.js and extensions from a CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <!-- CORRECTED: Add the core WebCola library first -->
     <script src="https://unpkg.com/webcola/WebCola/cola.min.js"></script>
-    <!-- Then, add the Cytoscape adaptor for Cola -->
     <script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 </head>
 <body>
@@ -48,10 +46,54 @@
             </section>
 
             <aside class="side-panel panel-right">
-                <!-- ... (rest of the file is unchanged) ... -->
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="details">Details</button>
+                    <button class="tab-btn" data-tab="prompt">Prompt</button>
+                </div>
+                <div class="panel-content">
+                    <div id="details-tab" class="tab-pane active">
+                        <section class="panel-section" id="details-panel">
+                            <h2>Node</h2>
+                            <p class="muted details-placeholder">Select a node to view its details.</p>
+                            <dl class="node-details hidden">
+                                <div>
+                                    <dt>Name</dt>
+                                    <dd id="detail-name"></dd>
+                                </div>
+                                <div>
+                                    <dt>Description</dt>
+                                    <dd id="detail-description"></dd>
+                                </div>
+                            </dl>
+                        </section>
+                        <section class="panel-section">
+                            <h2>Actions</h2>
+                            <div class="action-group">
+                                <button id="expand-node-btn" class="btn primary" disabled>Expand Node</button>
+                                <button id="delete-node-btn" class="btn danger" disabled>Delete Node</button>
+                            </div>
+                        </section>
+                    </div>
+                    <div id="prompt-tab" class="tab-pane">
+                        <section class="panel-section">
+                            <h2>Workspace Prompt</h2>
+                        </section>
+                        <section class="panel-section">
+                            <label for="prompt-text" class="panel-label">Prompt Template</label>
+                            <textarea id="prompt-text" rows="14"></textarea>
+                            <div class="prompt-actions">
+                                <div class="action-group">
+                                    <button id="reset-prompt-btn" class="btn secondary" disabled>Reset</button>
+                                    <button id="save-prompt-btn" class="btn primary" disabled>Save Prompt</button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
             </aside>
         </main>
     </div>
+    <!-- Our application logic -->
     <script src="script.js"></script>
 </body>
 </html>
