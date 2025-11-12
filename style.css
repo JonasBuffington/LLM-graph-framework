@@ -141,6 +141,24 @@ body, html {
     height: 100%;
 }
 
+#empty-workspace-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #7c8496;
+    font-size: 1.1rem;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+#empty-workspace-overlay p {
+    margin: 0.25rem 0;
+}
+
 #loading-overlay {
     position: absolute;
     inset: 0;

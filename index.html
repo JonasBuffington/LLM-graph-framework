@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <!-- Import Cytoscape.js and extensions from a CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
-    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+    <script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 </head>
 <body>
     <div class="app-shell">
@@ -25,9 +24,9 @@
                     <h2>Add Node</h2>
                     <form id="add-node-form" class="panel-form">
                         <label for="node-name">Name</label>
-                        <input type="text" id="node-name" name="name" required>
+                        <input type="text" id="node-name" name="name" required placeholder="e.g., Machine Learning">
                         <label for="node-description">Description</label>
-                        <textarea id="node-description" name="description" rows="4" required></textarea>
+                        <textarea id="node-description" name="description" rows="4" required placeholder="e.g., A field of AI focused on building systems that learn from data."></textarea>
                         <button type="submit" class="btn">Create Node</button>
                     </form>
                 </section>
@@ -35,6 +34,10 @@
 
             <section class="graph-container">
                 <div id="cy"></div>
+                <div id="empty-workspace-overlay" class="hidden">
+                    <p>The workspace is empty.</p>
+                    <p class="muted">Use the "Add Node" form to get started!</p>
+                </div>
                 <div id="loading-overlay" class="hidden">
                     <div class="spinner"></div>
                     <p>Working…</p>

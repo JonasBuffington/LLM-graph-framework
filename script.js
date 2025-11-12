@@ -1,4 +1,3 @@
-// script.js
 document.addEventListener('DOMContentLoaded', () => {
     const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     const API_BASE_URL = isLocalHost
@@ -8,8 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
     const BACKEND_STATUS_POLL_INTERVAL = 10000;
 
-    // --- MODIFIED: User ID Management ---
-    function generateUUID() { // A more compatible UUID generator
+    function generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
@@ -26,9 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return userId;
     }
     const USER_ID = getOrSetUserId();
-    // --- END MODIFICATION ---
 
     const overlay = document.getElementById('loading-overlay');
+    const emptyWorkspaceOverlay = document.getElementById('empty-workspace-overlay');
     const overlayMessage = overlay.querySelector('p');
     const detailsPlaceholder = document.querySelector('.details-placeholder');
     const detailsList = document.querySelector('.node-details');
@@ -89,8 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let promptSnapshot = '';
-
-    cytoscape.use(cytoscapeDagre);
 
     const cy = cytoscape({
         container: document.getElementById('cy'),
@@ -178,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await runTask('Expanding node…', async () => {
             const graph = await request(`/nodes/${state.selectedNodeId}/expand`, { method: 'POST' });
             mergeGraph(graph);
-            applyTreeLayout({ fit: false });
+            applyLayout({ fit: false });
         });
     });
 
@@ -191,7 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             await request(`/nodes/${nodeId}`, { method: 'DELETE' });
             cy.remove(`#${nodeId}`);
             clearSelection();
-            applyTreeLayout({ fit: false });
+            applyLayout({ fit: false });
+            updateEmptyStateMessage();
         });
     });
 
@@ -234,8 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             mergeGraph({ nodes: [newNode], edges: [] });
             addNodeForm.reset();
-            applyTreeLayout({ fit: false });
+            applyLayout({ fit: false });
             selectNodeById(newNode.id);
+            updateEmptyStateMessage();
         });
     });
 
@@ -255,6 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             cy.elements().remove();
             clearSelection();
+            updateEmptyStateMessage();
         });
     });
 
@@ -284,7 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cy.elements().remove();
             mergeGraph(graph);
-            applyTreeLayout({ fit: true });
+            applyLayout({ fit: true });
+            updateEmptyStateMessage();
 
             applyPrompt(promptDoc?.prompt || '');
         });
@@ -355,19 +355,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return { displayName, fontSize };
     }
 
-    function applyTreeLayout({ fit = false } = {}) {
+    function applyLayout({ fit = true } = {}) {
         if (!cy.nodes().length) {
             return;
         }
 
-        const rootsCollection = cy.nodes().roots();
-        const rootIds = rootsCollection.length ? rootsCollection.map((node) => node.id()) : undefined;
-
         const layout = cy.layout({
-            name: 'dagre',
+            name: 'cola',
+            animate: true,
+            animationDuration: 450,
+            fit: fit,
+            padding: 40,
+            nodeSpacing: 50,
+            edgeLength: 120,
+            randomize: true,
         });
 
         layout.run();
+    }
+
+    function updateEmptyStateMessage() {
+        const isEmpty = cy.nodes().length === 0;
+        emptyWorkspaceOverlay.classList.toggle('hidden', !isEmpty);
     }
 
     function selectNode(element) {
