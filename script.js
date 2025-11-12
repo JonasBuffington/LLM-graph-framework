@@ -88,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let promptSnapshot = '';
 
-    cytoscape.use(cola);
+    // --- CORRECTED: Use the correct variable name for the Cola extension ---
+    cytoscape.use(cytoscapeCola);
 
     const cy = cytoscape({
         container: document.getElementById('cy'),
@@ -328,6 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const existingEdge = cy.getElementById(edgeId);
             if (existingEdge && existingEdge.length) {
                 return;
+
             }
 
             elementsToAdd.push({
