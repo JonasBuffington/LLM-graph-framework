@@ -88,8 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let promptSnapshot = '';
 
-    // CORRECTED: The cytoscape.use() call is no longer needed,
-    // as the library registers itself when loaded via script tags.
+    cytoscape.use(cytoscapeDagre);
 
     const cy = cytoscape({
         container: document.getElementById('cy'),
@@ -365,19 +364,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const layout = cy.layout({
-            name: 'cola',
-            animate: true,
-            animationDuration: 450,
+            name: 'dagre',
             fit: fit,
             padding: 40,
-            nodeSpacing: 60, // Increased spacing for wider trees
-            edgeLength: 150, // Increased length for clarity
-            randomize: true,
-            
-            flow: {
-                axis: 'y',
-                minSeparation: 50
-            }
+            spacingFactor: 1.2,
+            animate: true,
+            animationDuration: 450,
+            nodeDimensionsIncludeLabels: false,
+            ranker: 'tight-tree',
+            rankDir: 'TB',
+            rankSep: 150,
+            nodeSep: 70,
         });
 
         layout.run();

@@ -7,10 +7,11 @@
     <link rel="stylesheet" href="style.css">
     <!-- Import Cytoscape.js and extensions from a CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-    <script src="https://unpkg.com/webcola/WebCola/cola.min.js"></script>
-    <script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
+    <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 </head>
 <body>
+    <!-- The rest of the body is unchanged -->
     <div class="app-shell">
         <header class="app-header">
             <h1>GenAI Graph Explorer</h1>
@@ -93,7 +94,6 @@
             </aside>
         </main>
     </div>
-    <!-- Our application logic -->
     <script src="script.js"></script>
 </body>
 </html>
