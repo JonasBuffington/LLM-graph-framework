@@ -249,10 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         await runTask('Clearing graph…', async () => {
-            const nodeIds = cy.nodes().map((node) => node.id());
-            for (const nodeId of nodeIds) {
-                await request(`/nodes/${nodeId}`, { method: 'DELETE' });
-            }
+            await request('/graph', { method: 'DELETE' });
+            
             cy.elements().remove();
             clearSelection();
             updateEmptyStateMessage();

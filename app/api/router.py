@@ -27,6 +27,15 @@ def get_service(
 ) -> GraphService:
     return GraphService(driver, prompt_service)
 
+@router.delete("/graph", status_code=status.HTTP_204_NO_CONTENT, tags=["Graph"])
+async def clear_workspace(
+    user_id: str = Depends(get_user_id),
+    service: GraphService = Depends(get_service)
+):
+    """Deletes all nodes and relationships for the given user's workspace."""
+    await service.clear_workspace(user_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 @router.get("/graph", response_model=Graph, tags=["Graph"])
 async def get_full_graph(
     user_id: str = Depends(get_user_id),

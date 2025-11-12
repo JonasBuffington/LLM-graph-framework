@@ -8,6 +8,18 @@ class GraphRepository:
     def __init__(self, driver: AsyncDriver):
         self.driver = driver
 
+    async def delete_all_nodes_for_user(self, user_id: str) -> int:
+        """
+        Deletes all nodes (and their relationships) for a given user.
+        Returns the number of nodes deleted.
+        """
+        
+        query = "MATCH (n:Concept {userId: $userId}) DETACH DELETE n RETURN count(n) as deleted_count"
+        async with self.driver.session() as session:
+            result = await session.run(query, {"userId": user_id})
+            record = await result.single()
+            return record["deleted_count"] if record else 0
+
     async def get_full_graph(self, user_id: str) -> Graph:
         query = """
         MATCH (n:Concept {userId: $userId})

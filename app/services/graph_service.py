@@ -28,6 +28,10 @@ class GraphService:
             api_key=settings.GEMINI_API_KEY,
             prompt_service=self.prompt_service
         )
+    
+    async def clear_workspace(self, user_id: str) -> None:
+        """Clears all nodes and edges for a specific user."""
+        await self._with_retry(self.repo.delete_all_nodes_for_user, user_id)
 
     async def create_node(self, node_data: Node, user_id: str) -> Node:
         node_data.userId = user_id
