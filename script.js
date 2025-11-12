@@ -88,6 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let promptSnapshot = '';
 
+    cytoscape.use(cola);
+
     const cy = cytoscape({
         container: document.getElementById('cy'),
         wheelSensitivity: 0.25,
