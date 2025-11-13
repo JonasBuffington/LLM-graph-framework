@@ -125,7 +125,8 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["Content-Type", "X-User-ID"], # MODIFIED: Explicitly allow our custom header
+    # MODIFIED: Add 'Idempotency-Key' to the list of allowed headers
+    allow_headers=["Content-Type", "X-User-ID", "Idempotency-Key"],
 )
 
 @app.exception_handler(NodeNotFoundException)
