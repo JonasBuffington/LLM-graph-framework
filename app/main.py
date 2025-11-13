@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from neo4j.exceptions import ServiceUnavailable
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.storages import RedisStorage
 
 from app.api import router as api_router
 from app.db.driver import Neo4jDriver
@@ -23,15 +22,6 @@ neo4j_ready_event = asyncio.Event()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Startup Logic ---
-    # Get our well-behaved Redis client
-    redis_client = RedisClient.get_client()
-    # Create a storage backend for the limiter using our client
-    redis_storage = RedisStorage(redis_client)
-    # Inject the storage and strategy into the global limiter instance
-    limiter.storage = redis_storage
-    limiter.strategy = "fixed-window"
-
     # Start the Neo4j initialization in the background
     startup_task = asyncio.create_task(_initialize_neo4j())
 
@@ -48,7 +38,6 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        # --- Shutdown Logic ---
         if startup_task:
             if not startup_task.done():
                 startup_task.cancel()

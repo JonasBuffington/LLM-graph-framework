@@ -1,6 +1,7 @@
 # app/core/limiter.py
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from app.core.config import settings
 
 def get_user_id_key(request) -> str:
     """
@@ -10,7 +11,8 @@ def get_user_id_key(request) -> str:
     user_id = request.headers.get("x-user-id")
     return user_id or get_remote_address(request)
 
-# Create a limiter instance without storage.
-# The storage will be injected during the application's startup lifespan.
-# This prevents the library from making a faulty connection probe on import.
-limiter = Limiter(key_func=get_user_id_key)
+limiter = Limiter(
+    key_func=get_user_id_key,
+    storage_uri=settings.REDIS_URL,
+    strategy="fixed-window"
+)
