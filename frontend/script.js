@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PROMPT_KEY = 'expand-node';
     const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
     const BACKEND_STATUS_POLL_INTERVAL = 10000;
+    const HEALTH_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
     function generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -67,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let backendHealthCheckIntervalId = null;
+    let lastActivityTimestamp = Date.now();
 
     const textMetrics = (() => {
         const context = document.createElement('canvas').getContext('2d');
@@ -77,6 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     })();
+
+    document.addEventListener('pointerdown', markUserActivity);
+    document.addEventListener('keydown', markUserActivity);
+    window.addEventListener('focus', markUserActivity);
 
     function truncateTextToFit(text, maxWidth, font) {
         if (textMetrics.measure(text, font) <= maxWidth) {
@@ -520,6 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function request(path, options = {}) {
+        markUserActivity();
         const config = {
             method: options.method || 'GET',
             headers: options.headers ? { ...options.headers } : {}
@@ -634,6 +641,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         backendHealthCheckIntervalId = setInterval(async () => {
             const recovered = await pingBackend();
+            if (recovered === null) {
+                clearInterval(backendHealthCheckIntervalId);
+                backendHealthCheckIntervalId = null;
+                return;
+            }
             if (recovered) {
                 clearInterval(backendHealthCheckIntervalId);
                 backendHealthCheckIntervalId = null;
@@ -678,6 +690,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function pingBackend() {
+        if (shouldSkipHealthCheck()) {
+            stopBackendWait();
+            return null;
+        }
         try {
             const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
             if (response.ok) {
@@ -696,6 +712,14 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(backendHealthCheckIntervalId);
             backendHealthCheckIntervalId = null;
         }
+    }
+
+    function markUserActivity() {
+        lastActivityTimestamp = Date.now();
+    }
+
+    function shouldSkipHealthCheck() {
+        return Date.now() - lastActivityTimestamp > HEALTH_INACTIVITY_TIMEOUT_MS;
     }
 
     function isMobileDevice() {
