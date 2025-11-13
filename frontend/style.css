@@ -152,6 +152,8 @@ body, html {
     right: 1rem;
     display: none;
     z-index: 5;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .graph-mobile-controls .btn {
@@ -377,6 +379,35 @@ body, html {
 
 .mobile-only {
     display: none !important;
+}
+
+body.graph-fullscreen {
+    overflow: hidden;
+}
+
+body.graph-fullscreen .app-header,
+body.graph-fullscreen .side-panel,
+body.graph-fullscreen .panel-left,
+body.graph-fullscreen .panel-right {
+    display: none;
+}
+
+body.graph-fullscreen .graph-container {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+body.graph-fullscreen .graph-mobile-controls {
+    display: flex !important;
+}
+
+body.graph-fullscreen .graph-mobile-controls .btn {
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    border: none;
 }
 
 @media (max-width: 1200px) {

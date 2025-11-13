@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         prompt: document.getElementById('prompt-tab')
     };
     const mobileMultiSelectBtn = document.getElementById('mobile-multi-select-btn');
+    const fullscreenToggleBtn = document.getElementById('graph-fullscreen-btn');
     const overlayState = {
         taskDepth: 0,
         taskMessage: 'Working…',
@@ -177,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fitPadding: 30
         });
     }
+    enableGraphTouchLock();
 
     tabButtons.forEach((button) => {
         button.addEventListener('click', () => {
@@ -603,6 +605,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateMultiSelectToggle();
     }
+    if (fullscreenToggleBtn) {
+        fullscreenToggleBtn.addEventListener('click', toggleFullscreenGraph);
+        updateFullscreenToggle();
+    }
 
     function showLoading(message = 'Working…') {
         overlayState.taskDepth += 1;
@@ -725,4 +731,30 @@ document.addEventListener('DOMContentLoaded', () => {
         mobileMultiSelectBtn.textContent = multiSelectMode ? 'Multi-select: On' : 'Multi-select: Off';
         mobileMultiSelectBtn.setAttribute('aria-pressed', String(multiSelectMode));
         mobileMultiSelectBtn.classList.toggle('is-active', multiSelectMode);
+    }
+
+    function toggleFullscreenGraph() {
+        document.body.classList.toggle('graph-fullscreen');
+        updateFullscreenToggle();
+        cy.resize();
+        cy.fit();
+    }
+
+    function updateFullscreenToggle() {
+        if (!fullscreenToggleBtn) return;
+        const isActive = document.body.classList.contains('graph-fullscreen');
+        fullscreenToggleBtn.textContent = isActive ? 'Exit Fullscreen' : 'Fullscreen';
+        fullscreenToggleBtn.classList.toggle('is-active', isActive);
+    }
+
+    function enableGraphTouchLock() {
+        const container = cy.container();
+        if (!container) return;
+        const prevent = (event) => {
+            if (event.touches && event.touches.length > 0) {
+                event.preventDefault();
+            }
+        };
+        container.addEventListener('touchstart', prevent, { passive: false });
+        container.addEventListener('touchmove', prevent, { passive: false });
     }
