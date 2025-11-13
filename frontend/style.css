@@ -50,7 +50,9 @@ body, html {
     flex-direction: column;
     gap: 1.5rem;
     min-height: 0;
+    overflow: hidden;
 }
+
 
 .panel-section h2 {
     margin: 0 0 0.75rem;
