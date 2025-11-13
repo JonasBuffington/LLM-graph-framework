@@ -9,6 +9,11 @@ class Node(BaseModel):
     embedding: list[float] | None = Field(default=None, repr=False)
     userId: str | None = Field(default=None, repr=False)
 
+class NodeCreate(BaseModel):
+    """A model for creating a new node, excluding server-set fields."""
+    name: str
+    description: str
+
 class Edge(BaseModel):
     source_id: UUID
     target_id: UUID

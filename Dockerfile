@@ -1,12 +1,10 @@
+# Dockerfile
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /code
-
-# Install redis-server from the Debian repositories
-RUN apt-get update && apt-get install -y redis-server
 
 RUN pip install --no-cache-dir poetry
 
@@ -15,9 +13,6 @@ RUN poetry config virtualenvs.create false \
     && poetry install --only main --no-root
 
 COPY app ./app
-
-# Copy the Redis config file
-COPY redis.conf /etc/redis/redis.conf
 
 # Copy and prepare the startup script
 COPY start.sh .

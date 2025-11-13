@@ -3,7 +3,7 @@ from uuid import UUID
 import asyncio
 from neo4j import AsyncDriver
 from neo4j.exceptions import SessionExpired, ServiceUnavailable
-from app.models.graph import Node, Graph, Edge, NodeUpdate
+from app.models.graph import Node, Graph, Edge, NodeUpdate, NodeCreate
 from app.db.repositories.graph_repository import GraphRepository
 from app.core.exceptions import NodeNotFoundException
 from app.services.ai_service import AIService
@@ -33,10 +33,10 @@ class GraphService:
         """Clears all nodes and edges for a specific user."""
         await self._with_retry(self.repo.delete_all_nodes_for_user, user_id)
 
-    async def create_node(self, node_data: Node, user_id: str) -> Node:
-        node_data.userId = user_id
-        await self._ensure_embedding(node_data)
-        return await self._with_retry(self.repo.add_node, node_data)
+    async def create_node(self, node_data: NodeCreate, user_id: str) -> Node:
+        node = Node(**node_data.model_dump(), userId=user_id)
+        await self._ensure_embedding(node)
+        return await self._with_retry(self.repo.add_node, node)
 
     async def get_graph(self, user_id: str) -> Graph:
         return await self._with_retry(self.repo.get_full_graph, user_id)

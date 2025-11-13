@@ -22,6 +22,7 @@ neo4j_ready_event = asyncio.Event()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # --- Startup Logic ---
     # Start the Neo4j initialization in the background
     startup_task = asyncio.create_task(_initialize_neo4j())
 
@@ -38,15 +39,12 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
-        if startup_task:
-            if not startup_task.done():
-                startup_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await startup_task
-            else:
-                exc = startup_task.exception()
-                if exc:
-                    print(f"Neo4j initialization task completed with error: {exc}")
+        # --- Shutdown Logic ---
+        if startup_task and not startup_task.done():
+            startup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await startup_task
+        
         await Neo4jDriver.close_driver()
         await RedisClient.close_client()
         print("Successfully closed Neo4j and Redis connections.")

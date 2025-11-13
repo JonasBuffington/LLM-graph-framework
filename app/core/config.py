@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     NEO4J_PASSWORD: str
     REDIS_URL: str
     GEMINI_API_KEY: str = ""
+    LIMITER_STORAGE_URI: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

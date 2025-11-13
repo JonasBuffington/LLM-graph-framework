@@ -1,3 +1,4 @@
+# docker-compose.yml
 services:
   neo4j:
     image: neo4j:5-enterprise
@@ -32,7 +33,7 @@ services:
       - NEO4J_USER=${NEO4J_USER}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - REDIS_URL=redis://localhost:6379
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - neo4j
       - redis

@@ -2,7 +2,7 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, status, HTTPException, Response, Header, Request
 from pydantic import BaseModel
-from app.models.graph import Node, Graph, Edge, NodeUpdate
+from app.models.graph import Node, Graph, Edge, NodeUpdate, NodeCreate
 from app.models.prompt import PromptDocument, PromptUpdate
 from app.services.graph_service import GraphService
 from app.db.driver import get_db_driver
@@ -82,11 +82,11 @@ async def execute_action(
 @limiter.limit("60/minute")
 async def add_node(
     request: Request,
-    node: Node,
+    node_data: NodeCreate,
     user_id: str = Depends(get_user_id),
     service: GraphService = Depends(get_service)
 ):
-    return await service.create_node(node, user_id)
+    return await service.create_node(node_data, user_id)
 
 @router.get("/nodes/{node_id}", response_model=Node, tags=["Nodes"])
 @limiter.limit("200/minute")
