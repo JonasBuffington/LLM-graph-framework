@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
     const BACKEND_STATUS_POLL_INTERVAL = 10000;
     const HEALTH_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-    const HEALTH_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
     function generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -69,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let backendHealthCheckIntervalId = null;
-    let lastActivityTimestamp = Date.now();
     let healthChecksSuspended = false;
     let lastActivityTimestamp = Date.now();
 
