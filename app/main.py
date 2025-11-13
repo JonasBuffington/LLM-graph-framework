@@ -20,6 +20,8 @@ MAX_RETRIES = 10
 RETRY_DELAY = 3
 INITIALIZATION_GRACE_PERIOD = 30
 HEALTH_IDLE_THRESHOLD_SECONDS = 600
+HEALTH_REQUIRED_HEADER = "X-App-Revision"
+HEALTH_REVISION_VALUE = "2025-02-25"
 neo4j_ready_event = asyncio.Event()
 _last_non_health_activity = time.time()
 
@@ -155,18 +157,23 @@ async def root():
     return {"message": "Welcome to the GenAI Graph Framework API"}
 
 @app.get("/healthz", tags=["Health"], status_code=status.HTTP_200_OK)
-async def health_check():
+async def health_check(request: Request):
     """
     Returns the operational status of the service and indicates whether
     clients should keep polling.
     """
+    header_value = request.headers.get(HEALTH_REQUIRED_HEADER)
+    if header_value != HEALTH_REVISION_VALUE:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Client revision expired")
+
     idle_seconds = time.time() - _last_non_health_activity
     polling_allowed = idle_seconds < HEALTH_IDLE_THRESHOLD_SECONDS
     return {
         "status": "ok",
         "neo4j_ready": neo4j_ready_event.is_set(),
         "polling_allowed": polling_allowed,
-        "idle_seconds": int(idle_seconds)
+        "idle_seconds": int(idle_seconds),
+        "revision": HEALTH_REVISION_VALUE
     }
 
 @app.get("/redis-health", tags=["Health"], status_code=status.HTTP_200_OK)
