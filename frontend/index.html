@@ -8,9 +8,7 @@
     <!-- Import Cytoscape.js and extensions from a CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
     <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/cytoscape-panzoom@2.5.3/cytoscape-panzoom.css">
     <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
-    <script src="https://unpkg.com/cytoscape-panzoom@2.5.3/cytoscape-panzoom.js"></script>
 </head>
 <body>
     <!-- The rest of the body is unchanged -->
@@ -37,14 +35,6 @@
             </aside>
 
             <section class="graph-container">
-                <div class="graph-mobile-controls mobile-only">
-                    <button id="mobile-multi-select-btn" class="btn secondary" aria-pressed="false">
-                        Multi-select: Off
-                    </button>
-                    <button id="graph-fullscreen-btn" class="btn secondary">
-                        Fullscreen
-                    </button>
-                </div>
                 <div id="cy"></div>
                 <div id="empty-workspace-overlay" class="hidden">
                     <p>The workspace is empty.</p>

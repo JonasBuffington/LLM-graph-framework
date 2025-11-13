@@ -1,5 +1,14 @@
 // script.js
 document.addEventListener('DOMContentLoaded', () => {
+    if (isMobileDevice()) {
+        document.body.innerHTML = `
+            <div class="unsupported-banner">
+                <h1>Desktop Required</h1>
+                <p>This playground is optimized for desktop browsers. Please revisit on a laptop or desktop computer.</p>
+            </div>
+        `;
+        return;
+    }
     const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     const API_BASE_URL = isLocalHost
         ? 'http://localhost:8000'
@@ -43,8 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         details: document.getElementById('details-tab'),
         prompt: document.getElementById('prompt-tab')
     };
-    const mobileMultiSelectBtn = document.getElementById('mobile-multi-select-btn');
-    const fullscreenToggleBtn = document.getElementById('graph-fullscreen-btn');
     const overlayState = {
         taskDepth: 0,
         taskMessage: 'Working…',
@@ -86,14 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         selectedNodeIds: []
     };
-    let multiSelectMode = false;
 
     let promptSnapshot = '';
 
     cytoscape.use(cytoscapeDagre);
-    if (typeof cytoscapePanzoom !== 'undefined') {
-        cytoscape.use(cytoscapePanzoom);
-    }
 
     const cy = cytoscape({
         container: document.getElementById('cy'),
@@ -167,18 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         ]
     });
-
-    if (typeof cy.panzoom === 'function') {
-        cy.panzoom({
-            zoomOnly: false,
-            sliderHandleIcon: '☍',
-            zoomFactor: 0.1,
-            maxZoom: 5,
-            minZoom: 0.125,
-            fitPadding: 30
-        });
-    }
-    enableGraphTouchLock();
 
     tabButtons.forEach((button) => {
         button.addEventListener('click', () => {
@@ -292,20 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cy.on('tap', 'node', (event) => {
         const tappedNode = event.target;
         const isShiftPressed = event.originalEvent.shiftKey;
-        const allowMulti = isShiftPressed || multiSelectMode;
 
-        if (!allowMulti) {
-            // This ensures that a normal click deselects others and selects only the tapped node.
-            // The 'select' event will then fire, triggering the UI update.
+        if (!isShiftPressed) {
             cy.nodes().unselect();
             tappedNode.select();
         } else {
-            // Toggle selection for shift-click
-            if (tappedNode.selected()) {
-                tappedNode.unselect();
-            } else {
-                tappedNode.select();
-            }
+            tappedNode.select(!tappedNode.selected());
         }
     });
 
@@ -598,17 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     evaluateHealthStatus('Connecting to backend…');
-    if (mobileMultiSelectBtn) {
-        mobileMultiSelectBtn.addEventListener('click', () => {
-            multiSelectMode = !multiSelectMode;
-            updateMultiSelectToggle();
-        });
-        updateMultiSelectToggle();
-    }
-    if (fullscreenToggleBtn) {
-        fullscreenToggleBtn.addEventListener('click', toggleFullscreenGraph);
-        updateFullscreenToggle();
-    }
 
     function showLoading(message = 'Working…') {
         overlayState.taskDepth += 1;
@@ -725,36 +697,12 @@ document.addEventListener('DOMContentLoaded', () => {
             backendHealthCheckIntervalId = null;
         }
     }
+
+    function isMobileDevice() {
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        if (/android|iphone|ipad|ipod|iemobile|wpdesktop/i.test(ua)) {
+            return true;
+        }
+        return window.matchMedia('(max-width: 900px) and (pointer: coarse)').matches;
+    }
 });
-    function updateMultiSelectToggle() {
-        if (!mobileMultiSelectBtn) return;
-        mobileMultiSelectBtn.textContent = multiSelectMode ? 'Multi-select: On' : 'Multi-select: Off';
-        mobileMultiSelectBtn.setAttribute('aria-pressed', String(multiSelectMode));
-        mobileMultiSelectBtn.classList.toggle('is-active', multiSelectMode);
-    }
-
-    function toggleFullscreenGraph() {
-        document.body.classList.toggle('graph-fullscreen');
-        updateFullscreenToggle();
-        cy.resize();
-        cy.fit();
-    }
-
-    function updateFullscreenToggle() {
-        if (!fullscreenToggleBtn) return;
-        const isActive = document.body.classList.contains('graph-fullscreen');
-        fullscreenToggleBtn.textContent = isActive ? 'Exit Fullscreen' : 'Fullscreen';
-        fullscreenToggleBtn.classList.toggle('is-active', isActive);
-    }
-
-    function enableGraphTouchLock() {
-        const container = cy.container();
-        if (!container) return;
-        const prevent = (event) => {
-            if (event.touches && event.touches.length > 0) {
-                event.preventDefault();
-            }
-        };
-        container.addEventListener('touchstart', prevent, { passive: false });
-        container.addEventListener('touchmove', prevent, { passive: false });
-    }
