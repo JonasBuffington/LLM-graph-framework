@@ -521,6 +521,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         config.headers['X-User-ID'] = USER_ID;
 
+        const idempotentMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+        if (idempotentMethods.includes(config.method.toUpperCase())) {
+            config.headers['Idempotency-Key'] = generateUUID();
+        }
+
         if (options.body) {
             config.body = options.body;
             if (!config.headers['Content-Type']) {
