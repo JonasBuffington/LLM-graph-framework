@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let promptSnapshot = '';
 
     cytoscape.use(cytoscapeDagre);
-    if (typeof cytoscapeGestureHandling !== 'undefined') {
-        cytoscape.use(cytoscapeGestureHandling);
+    if (typeof cytoscapePanzoom !== 'undefined') {
+        cytoscape.use(cytoscapePanzoom);
     }
 
     const cy = cytoscape({
@@ -167,8 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ]
     });
 
-    if (typeof cy.gestureHandling === 'function') {
-        cy.gestureHandling();
+    if (typeof cy.panzoom === 'function') {
+        cy.panzoom({
+            zoomOnly: false,
+            sliderHandleIcon: '☍',
+            zoomFactor: 0.1,
+            maxZoom: 5,
+            minZoom: 0.125,
+            fitPadding: 30
+        });
     }
 
     tabButtons.forEach((button) => {
