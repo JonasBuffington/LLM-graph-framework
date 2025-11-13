@@ -143,6 +143,24 @@ body, html {
     height: 100%;
 }
 
+.graph-mobile-controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: none;
+    z-index: 5;
+}
+
+.graph-mobile-controls .btn {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+}
+
+#cy {
+    width: 100%;
+    height: 100%;
+}
+
 #empty-workspace-overlay {
     position: absolute;
     inset: 0;
@@ -288,6 +306,10 @@ body, html {
     background: #3748d4;
 }
 
+.btn.is-active {
+    box-shadow: 0 0 0 2px rgba(75, 99, 255, 0.4);
+}
+
 .btn.secondary {
     background: #fff;
     border: 1px solid #d4d8e0;
@@ -346,7 +368,11 @@ body, html {
 }
 
 .node-details.hidden {
-    display: none;
+   	display: none;
+}
+
+.mobile-only {
+    display: none !important;
 }
 
 @media (max-width: 1200px) {
@@ -357,17 +383,56 @@ body, html {
 
 @media (max-width: 980px) {
     .app-main {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto auto;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+        gap: 1rem;
     }
 
-    .panel-left,
-    .panel-right {
+    .side-panel {
+        width: 100%;
+        padding: 1rem;
+        overflow: visible;
+    }
+
+    .panel-left {
         order: 1;
+    }
+
+    .panel-right {
+        order: 2;
+    }
+
+    .panel-content {
+        overflow: visible;
     }
 
     .graph-container {
         order: 0;
-        min-height: 60vh;
+        min-height: 65vh;
+    }
+
+    .graph-mobile-controls {
+        display: flex;
+    }
+
+    .mobile-only {
+        display: block !important;
+    }
+
+    .panel-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        overflow-x: auto;
+    }
+
+    .action-group {
+        flex-direction: column;
+    }
+
+    .prompt-actions {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

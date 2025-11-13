@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         details: document.getElementById('details-tab'),
         prompt: document.getElementById('prompt-tab')
     };
+    const mobileMultiSelectBtn = document.getElementById('mobile-multi-select-btn');
     const overlayState = {
         taskDepth: 0,
         taskMessage: 'Working…',
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = {
         selectedNodeIds: []
     };
+    let multiSelectMode = false;
 
     let promptSnapshot = '';
 
@@ -274,15 +276,20 @@ document.addEventListener('DOMContentLoaded', () => {
     cy.on('tap', 'node', (event) => {
         const tappedNode = event.target;
         const isShiftPressed = event.originalEvent.shiftKey;
+        const allowMulti = isShiftPressed || multiSelectMode;
 
-        if (!isShiftPressed) {
+        if (!allowMulti) {
             // This ensures that a normal click deselects others and selects only the tapped node.
             // The 'select' event will then fire, triggering the UI update.
             cy.nodes().unselect();
             tappedNode.select();
         } else {
             // Toggle selection for shift-click
-            tappedNode.select(!tappedNode.selected());
+            if (tappedNode.selected()) {
+                tappedNode.unselect();
+            } else {
+                tappedNode.select();
+            }
         }
     });
 
@@ -575,6 +582,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     evaluateHealthStatus('Connecting to backend…');
+    if (mobileMultiSelectBtn) {
+        mobileMultiSelectBtn.addEventListener('click', () => {
+            multiSelectMode = !multiSelectMode;
+            updateMultiSelectToggle();
+        });
+        updateMultiSelectToggle();
+    }
 
     function showLoading(message = 'Working…') {
         overlayState.taskDepth += 1;
@@ -692,3 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+    function updateMultiSelectToggle() {
+        if (!mobileMultiSelectBtn) return;
+        mobileMultiSelectBtn.textContent = multiSelectMode ? 'Multi-select: On' : 'Multi-select: Off';
+        mobileMultiSelectBtn.setAttribute('aria-pressed', String(multiSelectMode));
+        mobileMultiSelectBtn.classList.toggle('is-active', multiSelectMode);
+    }
