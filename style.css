@@ -14,7 +14,7 @@ body, html {
 .app-shell {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
 }
 
 .app-header {
@@ -39,6 +39,7 @@ body, html {
     padding: 1.5rem;
     box-sizing: border-box;
     align-items: stretch;
+    min-height: 0;
 }
 
 .side-panel {
@@ -50,6 +51,7 @@ body, html {
     flex-direction: column;
     gap: 1.5rem;
     min-height: 0;
+    overflow: hidden;
     overflow: hidden;
 }
 
@@ -235,6 +237,8 @@ body, html {
 }
 
 .panel-content {
+    flex: 1;
+    min-height: 0;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
