@@ -11,6 +11,7 @@
     <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 </head>
 <body>
+    <!-- The rest of the body is unchanged -->
     <div class="app-shell">
         <header class="app-header">
             <h1>GenAI Graph Explorer</h1>
@@ -25,16 +26,25 @@
                     <h2>Add Node</h2>
                     <form id="add-node-form" class="panel-form">
                         <label for="node-name">Name</label>
-                        <input type="text" id="node-name" name="name" required>
+                        <input type="text" id="node-name" name="name" required placeholder="e.g., Machine Learning">
                         <label for="node-description">Description</label>
-                        <textarea id="node-description" name="description" rows="4" required></textarea>
+                        <textarea id="node-description" name="description" rows="4" required placeholder="e.g., A field of AI focused on building systems that learn from data."></textarea>
                         <button type="submit" class="btn">Create Node</button>
                     </form>
                 </section>
             </aside>
 
             <section class="graph-container">
+                <div class="graph-mobile-controls mobile-only">
+                    <button id="mobile-multi-select-btn" class="btn secondary" aria-pressed="false">
+                        Multi-select: Off
+                    </button>
+                </div>
                 <div id="cy"></div>
+                <div id="empty-workspace-overlay" class="hidden">
+                    <p>The workspace is empty.</p>
+                    <p class="muted">Use the "Add Node" form to get started!</p>
+                </div>
                 <div id="loading-overlay" class="hidden">
                     <div class="spinner"></div>
                     <p>Working…</p>
@@ -49,18 +59,11 @@
                 <div class="panel-content">
                     <div id="details-tab" class="tab-pane active">
                         <section class="panel-section" id="details-panel">
-                            <h2>Node</h2>
-                            <p class="muted details-placeholder">Select a node to view its details.</p>
-                            <dl class="node-details hidden">
-                                <div>
-                                    <dt>Name</dt>
-                                    <dd id="detail-name"></dd>
-                                </div>
-                                <div>
-                                    <dt>Description</dt>
-                                    <dd id="detail-description"></dd>
-                                </div>
-                            </dl>
+                            <h2>Node(s) Selected</h2>
+                            <p class="muted details-placeholder">Select a node to view its details. Hold Shift to select multiple nodes.</p>
+                            <div id="details-list-container">
+                                <!-- Node details will be dynamically inserted here -->
+                            </div>
                         </section>
                         <section class="panel-section">
                             <h2>Actions</h2>
@@ -89,7 +92,6 @@
             </aside>
         </main>
     </div>
-    <!-- Our application logic -->
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+// script.js
 document.addEventListener('DOMContentLoaded', () => {
     const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
     const API_BASE_URL = isLocalHost
@@ -7,12 +8,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
     const BACKEND_STATUS_POLL_INTERVAL = 10000;
 
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function getOrSetUserId() {
+        const USER_ID_KEY = 'genai-graph-user-id';
+        let userId = localStorage.getItem(USER_ID_KEY);
+        if (!userId) {
+            userId = generateUUID();
+            localStorage.setItem(USER_ID_KEY, userId);
+        }
+        return userId;
+    }
+    const USER_ID = getOrSetUserId();
+
     const overlay = document.getElementById('loading-overlay');
+    const emptyWorkspaceOverlay = document.getElementById('empty-workspace-overlay');
     const overlayMessage = overlay.querySelector('p');
     const detailsPlaceholder = document.querySelector('.details-placeholder');
-    const detailsList = document.querySelector('.node-details');
-    const detailName = document.getElementById('detail-name');
-    const detailDescription = document.getElementById('detail-description');
+    const detailsListContainer = document.getElementById('details-list-container');
     const expandButton = document.getElementById('expand-node-btn');
     const deleteButton = document.getElementById('delete-node-btn');
     const addNodeForm = document.getElementById('add-node-form');
@@ -25,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         details: document.getElementById('details-tab'),
         prompt: document.getElementById('prompt-tab')
     };
+    const mobileMultiSelectBtn = document.getElementById('mobile-multi-select-btn');
     const overlayState = {
         taskDepth: 0,
         taskMessage: 'Working…',
@@ -64,8 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const state = {
-        selectedNodeId: null
+        selectedNodeIds: []
     };
+    let multiSelectMode = false;
 
     let promptSnapshot = '';
 
@@ -74,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cy = cytoscape({
         container: document.getElementById('cy'),
         wheelSensitivity: 0.25,
-        minZoom: 0.25,
-        maxZoom: 2.5,
+        minZoom: 0.125,
+        maxZoom: 5,
         layout: { name: 'preset' },
         style: [
             {
@@ -151,26 +171,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     expandButton.addEventListener('click', async () => {
-        if (!state.selectedNodeId) {
-            return;
-        }
-        await runTask('Expanding node…', async () => {
-            const graph = await request(`/nodes/${state.selectedNodeId}/expand`, { method: 'POST' });
+        if (state.selectedNodeIds.length === 0) return;
+
+        await runTask('Executing action…', async () => {
+            const payload = {
+                action_key: PROMPT_KEY,
+                selected_node_ids: state.selectedNodeIds
+            };
+            const graph = await request('/graph/execute-action', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
             mergeGraph(graph);
-            applyTreeLayout({ fit: false });
+            applyLayout({ fit: false });
         });
     });
 
     deleteButton.addEventListener('click', async () => {
-        if (!state.selectedNodeId) {
-            return;
-        }
-        const nodeId = state.selectedNodeId;
-        await runTask('Deleting node…', async () => {
-            await request(`/nodes/${nodeId}`, { method: 'DELETE' });
-            cy.remove(`#${nodeId}`);
+        if (state.selectedNodeIds.length === 0) return;
+
+        const nodeCount = state.selectedNodeIds.length;
+        const confirmation = window.confirm(`Are you sure you want to delete ${nodeCount} node(s)?`);
+        if (!confirmation) return;
+
+        await runTask('Deleting node(s)…', async () => {
+            if (nodeCount > 1) {
+                console.warn("Executing multiple individual DELETE requests. For improved performance, consider implementing a batch-delete endpoint in the backend.");
+            }
+            const deletePromises = state.selectedNodeIds.map(id =>
+                request(`/nodes/${id}`, { method: 'DELETE' })
+            );
+            await Promise.all(deletePromises);
+
+            cy.remove(state.selectedNodeIds.map(id => `#${id}`).join(', '));
             clearSelection();
-            applyTreeLayout({ fit: false });
+            applyLayout({ fit: false });
+            updateEmptyStateMessage();
         });
     });
 
@@ -213,8 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             mergeGraph({ nodes: [newNode], edges: [] });
             addNodeForm.reset();
-            applyTreeLayout({ fit: false });
+            applyLayout({ fit: false });
             selectNodeById(newNode.id);
+            updateEmptyStateMessage();
         });
     });
 
@@ -228,20 +265,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         await runTask('Clearing graph…', async () => {
-            // This is inefficient (O(N) requests). A production system should
-            // use a single API endpoint for batch deletion, e.g., DELETE /graph.
-            const nodeIds = cy.nodes().map((node) => node.id());
-            for (const nodeId of nodeIds) {
-                await request(`/nodes/${nodeId}`, { method: 'DELETE' });
-            }
+            await request('/graph', { method: 'DELETE' });
+            
             cy.elements().remove();
             clearSelection();
+            updateEmptyStateMessage();
         });
     });
 
     cy.on('tap', 'node', (event) => {
-        selectNode(event.target);
+        const tappedNode = event.target;
+        const isShiftPressed = event.originalEvent.shiftKey;
+        const allowMulti = isShiftPressed || multiSelectMode;
+
+        if (!allowMulti) {
+            // This ensures that a normal click deselects others and selects only the tapped node.
+            // The 'select' event will then fire, triggering the UI update.
+            cy.nodes().unselect();
+            tappedNode.select();
+        } else {
+            // Toggle selection for shift-click
+            if (tappedNode.selected()) {
+                tappedNode.unselect();
+            } else {
+                tappedNode.select();
+            }
+        }
     });
+
+    // This is the new, robust way to handle UI updates.
+    cy.on('select unselect', 'node', updateSelectionState);
 
     cy.on('tap', (event) => {
         if (event.target === cy) {
@@ -265,7 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cy.elements().remove();
             mergeGraph(graph);
-            applyTreeLayout({ fit: true });
+            applyLayout({ fit: true });
+            updateEmptyStateMessage();
 
             applyPrompt(promptDoc?.prompt || '');
         });
@@ -307,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const existingEdge = cy.getElementById(edgeId);
             if (existingEdge && existingEdge.length) {
                 return;
+
             }
 
             elementsToAdd.push({
@@ -336,91 +391,96 @@ document.addEventListener('DOMContentLoaded', () => {
         return { displayName, fontSize };
     }
 
-    function applyTreeLayout({ fit = false } = {}) {
+    function applyLayout({ fit = true } = {}) {
         if (!cy.nodes().length) {
             return;
         }
 
-        const rootsCollection = cy.nodes().roots();
-        const rootIds = rootsCollection.length ? rootsCollection.map((node) => node.id()) : undefined;
-
         const layout = cy.layout({
             name: 'dagre',
-            fit,
+            fit: fit,
+            padding: 40,
+            spacingFactor: 1.2,
             animate: true,
             animationDuration: 450,
-            nodeDimensionsIncludeLabels: true,
+            nodeDimensionsIncludeLabels: false,
+            ranker: 'tight-tree',
             rankDir: 'TB',
-            rankSep: 140,
-            nodeSep: 50,
-            edgeSep: 50,
-            padding: 120,
-            spacingFactor: 1.1,
-            roots: rootIds
+            rankSep: 150,
+            nodeSep: 70,
         });
 
         layout.run();
     }
 
-    function selectNode(element) {
-        const node = coerceNode(element);
-        if (!node || node.empty()) {
-            return;
-        }
+    function updateEmptyStateMessage() {
+        const isEmpty = cy.nodes().length === 0;
+        emptyWorkspaceOverlay.classList.toggle('hidden', !isEmpty);
+    }
 
-        cy.nodes().unselect();
-        node.select();
-        state.selectedNodeId = node.id();
-        updateDetailsPanel(node.data());
+    function updateSelectionState() {
+        state.selectedNodeIds = cy.nodes(':selected').map(node => node.id());
+        const selectedNodesData = cy.nodes(':selected').map(node => node.data());
+        updateDetailsPanel(selectedNodesData);
+        updateActionButtons();
     }
 
     function selectNodeById(nodeId) {
-        if (!nodeId) {
-            return;
-        }
-        const nodeCollection = cy.getElementById(nodeId);
-        const node = coerceNode(nodeCollection);
-        if (node) {
-            selectNode(node);
-        }
-    }
-
-    function coerceNode(element) {
-        if (!element) {
-            return null;
-        }
-        if (typeof element.isNode === 'function' && element.isNode()) {
-            return element;
-        }
-        if (typeof element.first === 'function') {
-            const first = element.first();
-            return first && typeof first.isNode === 'function' && first.isNode() ? first : null;
-        }
-        return null;
+        if (!nodeId) return;
+        cy.nodes().unselect();
+        cy.getElementById(nodeId).select();
+        // No need to call updateSelectionState here, as the 'select' event will fire and trigger it.
     }
 
     function clearSelection() {
-        state.selectedNodeId = null;
-        cy.nodes().unselect();
-        updateDetailsPanel(null);
+        cy.elements().unselect();
+        // No need to call updateSelectionState here, as the 'unselect' event will fire and trigger it.
         switchTab('details');
     }
 
-    function updateDetailsPanel(nodeData) {
-        if (!nodeData) {
+    function updateDetailsPanel(nodesData) {
+        detailsListContainer.innerHTML = ''; // Clear previous details
+
+        if (!nodesData || nodesData.length === 0) {
             detailsPlaceholder.classList.remove('hidden');
-            detailsList.classList.add('hidden');
-            detailName.textContent = '';
-            detailDescription.textContent = '';
             setActionButtonsEnabled(false);
             return;
         }
 
         detailsPlaceholder.classList.add('hidden');
-        detailsList.classList.remove('hidden');
-        detailName.textContent = nodeData.name || 'Untitled';
-        detailDescription.textContent = nodeData.description || 'No description provided.';
+        
+        nodesData.forEach(nodeData => {
+            const detailElement = document.createElement('dl');
+            detailElement.className = 'node-details';
+            detailElement.innerHTML = `
+                <div>
+                    <dt>Name</dt>
+                    <dd>${nodeData.name || 'Untitled'}</dd>
+                </div>
+                <div>
+                    <dt>Description</dt>
+                    <dd>${nodeData.description || 'No description.'}</dd>
+                </div>
+            `;
+            detailsListContainer.appendChild(detailElement);
+        });
+
         setActionButtonsEnabled(true);
+    }
+
+    function updateActionButtons() {
+        const count = state.selectedNodeIds.length;
+        const isEnabled = count > 0;
+
+        setActionButtonsEnabled(isEnabled);
+
+        if (count <= 1) {
+            expandButton.textContent = 'Expand Node';
+            deleteButton.textContent = 'Delete Node';
+        } else {
+            expandButton.textContent = `Expand Nodes (${count})`;
+            deleteButton.textContent = `Delete Nodes (${count})`;
+        }
     }
 
     function setActionButtonsEnabled(isEnabled) {
@@ -465,6 +525,13 @@ document.addEventListener('DOMContentLoaded', () => {
             method: options.method || 'GET',
             headers: options.headers ? { ...options.headers } : {}
         };
+
+        config.headers['X-User-ID'] = USER_ID;
+
+        const idempotentMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+        if (idempotentMethods.includes(config.method.toUpperCase())) {
+            config.headers['Idempotency-Key'] = generateUUID();
+        }
 
         if (options.body) {
             config.body = options.body;
@@ -514,8 +581,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initial health check to surface spinner immediately if backend is sleeping
     evaluateHealthStatus('Connecting to backend…');
+    if (mobileMultiSelectBtn) {
+        mobileMultiSelectBtn.addEventListener('click', () => {
+            multiSelectMode = !multiSelectMode;
+            updateMultiSelectToggle();
+        });
+        updateMultiSelectToggle();
+    }
 
     function showLoading(message = 'Working…') {
         overlayState.taskDepth += 1;
@@ -633,3 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+    function updateMultiSelectToggle() {
+        if (!mobileMultiSelectBtn) return;
+        mobileMultiSelectBtn.textContent = multiSelectMode ? 'Multi-select: On' : 'Multi-select: Off';
+        mobileMultiSelectBtn.setAttribute('aria-pressed', String(multiSelectMode));
+        mobileMultiSelectBtn.classList.toggle('is-active', multiSelectMode);
+    }
