@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const BACKEND_ESTIMATED_SPINUP_SECONDS = 50;
     const BACKEND_STATUS_POLL_INTERVAL = 10000;
     const HEALTH_INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+    const APP_REVISION = '2025-02-25';
 
     function generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -546,6 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
             method: options.method || 'GET',
             headers: options.headers ? { ...options.headers } : {}
         };
+        config.headers['X-App-Revision'] = APP_REVISION;
 
         config.headers['X-User-ID'] = USER_ID;
 
@@ -714,7 +716,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
         try {
-            const response = await fetch(`${API_BASE_URL}/healthz`, { cache: 'no-store' });
+            const response = await fetch(`${API_BASE_URL}/healthz`, {
+                cache: 'no-store',
+                headers: { 'X-App-Revision': APP_REVISION }
+            });
             if (response.ok) {
                 let body = null;
                 try {
