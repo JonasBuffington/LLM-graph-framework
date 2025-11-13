@@ -18,7 +18,7 @@ GenAI Graph Explorer is a small playground for building a personal knowledge gra
   - saves the generated nodes/edges back into the graph.
 - Per-user prompt editing through the API and frontend, with a reset option to the repo default.
 - Built-in rate limiting and Redis-backed idempotency so POST/PUT/DELETE/PATCH requests can be retried safely.
-- Health endpoints for Render (`/health`) and Redis (`/redis-health`), plus frontend UI messaging for slow cold-starts.
+- Health endpoints for Render (`/healthz`) and Redis (`/redis-health`), plus frontend UI messaging for slow cold-starts.
 
 ## Stack Overview
 - **Backend**: FastAPI, Uvicorn, SlowAPI for rate limiting, Redis for idempotency cache + limiter storage, Neo4j driver, and Google `google-genai` SDK (Gemini Flash + `gemini-embedding-001`).

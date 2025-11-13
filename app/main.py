@@ -1,5 +1,6 @@
 # app/main.py
 import asyncio
+import time
 from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.responses import JSONResponse
@@ -18,7 +19,9 @@ from app.core.limiter import limiter
 MAX_RETRIES = 10
 RETRY_DELAY = 3
 INITIALIZATION_GRACE_PERIOD = 30
+HEALTH_IDLE_THRESHOLD_SECONDS = 600
 neo4j_ready_event = asyncio.Event()
+_last_non_health_activity = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -139,18 +142,32 @@ async def node_not_found_exception_handler(request: Request, exc: NodeNotFoundEx
 
 app.include_router(api_router.router)
 
+@app.middleware("http")
+async def track_activity(request: Request, call_next):
+    response = await call_next(request)
+    if not request.url.path.startswith("/healthz"):
+        global _last_non_health_activity
+        _last_non_health_activity = time.time()
+    return response
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to the GenAI Graph Framework API"}
 
-@app.get("/health", tags=["Health"], status_code=status.HTTP_200_OK)
+@app.get("/healthz", tags=["Health"], status_code=status.HTTP_200_OK)
 async def health_check():
     """
-    Returns the operational status of the service.
-    Crucially, this endpoint always returns a 200 OK to satisfy Render's health check,
-    allowing the service to start even if Neo4j is still initializing.
+    Returns the operational status of the service and indicates whether
+    clients should keep polling.
     """
-    return {"status": "ok", "neo4j_ready": neo4j_ready_event.is_set()}
+    idle_seconds = time.time() - _last_non_health_activity
+    polling_allowed = idle_seconds < HEALTH_IDLE_THRESHOLD_SECONDS
+    return {
+        "status": "ok",
+        "neo4j_ready": neo4j_ready_event.is_set(),
+        "polling_allowed": polling_allowed,
+        "idle_seconds": int(idle_seconds)
+    }
 
 @app.get("/redis-health", tags=["Health"], status_code=status.HTTP_200_OK)
 async def redis_health_check():
