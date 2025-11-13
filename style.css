@@ -39,6 +39,7 @@ body, html {
     padding: 1.5rem;
     box-sizing: border-box;
     align-items: stretch;
+    min-height: 0;
 }
 
 .side-panel {
