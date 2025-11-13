@@ -53,10 +53,12 @@ GenAI Graph Explorer is a small playground for building a personal knowledge gra
 - SlowAPI rate limits default to Redis storage so counters survive restarts.
 
 ## Testing
-Basic unit tests live under `tests/`. Current coverage includes the AI response parser, which makes sure Gemini’s structured output is cleaned up before Pydantic validation. Run them with:
+Basic unit tests live under `tests/` and are run with Pytest:
 ```bash
-python3 -m unittest
+pytest
 ```
+
+They currently cover the AI response parser, structured-output extraction, Redis health check logic, and the idempotent route wrapper.
 
 ---
 

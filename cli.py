@@ -1,9 +1,12 @@
 import asyncio
+import json
+import subprocess
+from typing import List
+from uuid import UUID
+
 import typer
 from rich.console import Console
 from rich.syntax import Syntax
-import json
-from uuid import UUID
 
 from app.models.graph import Node
 from app.services.ai_service import AIService
@@ -109,6 +112,18 @@ def test_expand(
         await Neo4jDriver.close_driver()
 
     asyncio.run(main())
+
+
+@cli_app.command("tests")
+def run_tests(pytest_args: List[str] = typer.Argument(None, help="Optional arguments forwarded to pytest.")):
+    """
+    Run the pytest suite.
+    """
+    cmd = ["pytest"]
+    if pytest_args:
+        cmd.extend(pytest_args)
+    result = subprocess.run(cmd)
+    raise typer.Exit(result.returncode)
 
 
 if __name__ == "__main__":
