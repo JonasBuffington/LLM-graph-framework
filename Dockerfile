@@ -6,6 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /code
 
+# Install redis-server from the Debian repositories
+RUN apt-get update && apt-get install -y redis-server
+
 RUN pip install --no-cache-dir poetry
 
 COPY pyproject.toml poetry.lock* ./
