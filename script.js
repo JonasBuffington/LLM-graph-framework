@@ -276,15 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const isShiftPressed = event.originalEvent.shiftKey;
 
         if (!isShiftPressed) {
-            // Regular click: select only the tapped node
+            // This ensures that a normal click deselects others and selects only the tapped node.
+            // The 'select' event will then fire, triggering the UI update.
             cy.nodes().unselect();
             tappedNode.select();
         } else {
-            // Shift-click: toggle selection
+            // Toggle selection for shift-click
             tappedNode.select(!tappedNode.selected());
         }
-        updateSelectionState();
     });
+
+    // This is the new, robust way to handle UI updates.
+    cy.on('select unselect', 'node', updateSelectionState);
 
     cy.on('tap', (event) => {
         if (event.target === cy) {
@@ -419,12 +422,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!nodeId) return;
         cy.nodes().unselect();
         cy.getElementById(nodeId).select();
-        updateSelectionState();
+        // No need to call updateSelectionState here, as the 'select' event will fire and trigger it.
     }
 
     function clearSelection() {
         cy.elements().unselect();
-        updateSelectionState();
+        // No need to call updateSelectionState here, as the 'unselect' event will fire and trigger it.
         switchTab('details');
     }
 
