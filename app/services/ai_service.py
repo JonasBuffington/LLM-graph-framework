@@ -70,6 +70,9 @@ class AIService:
                 config=generation_config
             )
             raw_text = self._extract_structured_text(response)
+            if not raw_text:
+                logger.error("AI response did not contain structured JSON output.")
+                return [], []
             ai_graph_data = parse_ai_response_text(raw_text)
             ai_graph = AI_Graph.model_validate(ai_graph_data)
 
@@ -117,21 +120,33 @@ class AIService:
                 content = getattr(candidate, "content", None)
                 parts = getattr(content, "parts", None) or []
                 for part in parts:
-                    mime_type = getattr(part, "mime_type", None) or getattr(
-                        getattr(part, "inline_data", None),
-                        "mime_type",
-                        None,
-                    )
-                    if mime_type == "application/json":
+                    inline_data = getattr(part, "inline_data", None)
+                    part_mime = getattr(part, "mime_type", None)
+                    inline_mime = getattr(inline_data, "mime_type", None) if inline_data else None
+                    mime_type = part_mime or inline_mime or ""
+                    if mime_type.lower().startswith("application/json"):
                         text_part = getattr(part, "text", None)
                         if text_part:
                             return text_part
-                        inline_data = getattr(part, "inline_data", None)
-                        data = getattr(inline_data, "data", None) if inline_data else None
-                        if isinstance(data, bytes):
-                            return data.decode("utf-8")
-                        if data:
-                            return str(data)
+                        if inline_data:
+                            data = getattr(inline_data, "data", None)
+                            if isinstance(data, bytes):
+                                return data.decode("utf-8")
+                            if data:
+                                return str(data)
+                    elif mime_type.lower().startswith("application/x-thought"):
+                        logger.debug("Skipping thought-signature part in candidate.")
+                        continue
+                    elif mime_type.lower().startswith("text/"):
+                        text_part = getattr(part, "text", None)
+                        if text_part:
+                            return text_part
+                        if inline_data:
+                            data = getattr(inline_data, "data", None)
+                            if isinstance(data, bytes):
+                                return data.decode("utf-8")
+                            if data:
+                                return str(data)
         except Exception as exc:
             logger.debug("Falling back to response.text due to extraction error: %s", exc)
 

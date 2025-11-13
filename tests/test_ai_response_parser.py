@@ -1,4 +1,5 @@
 import pytest
+from json import JSONDecodeError
 
 from app.services.ai_response_parser import parse_ai_response_text
 
@@ -33,3 +34,8 @@ def test_drops_thought_signature():
     raw = r'{"nodes": [], "edges": [], "thought-signature": {"id": "abc"}}'
     parsed = parse_ai_response_text(raw)
     assert "thought-signature" not in parsed
+
+
+def test_empty_payload_raises_json_error():
+    with pytest.raises(JSONDecodeError):
+        parse_ai_response_text("")

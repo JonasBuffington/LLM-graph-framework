@@ -1,3 +1,5 @@
+import pytest
+
 from app.services.ai_service import AIService
 
 
@@ -25,8 +27,10 @@ class DummyCandidate:
 
 
 class DummyResponse:
-    def __init__(self, candidates=None, text="fallback"):
+    def __init__(self, candidates=None, text="fallback", parts=None):
         self.candidates = candidates or []
+        if parts is not None:
+            self.candidates = [DummyCandidate(parts)]
         self.text = text
 
 
@@ -50,3 +54,15 @@ def test_extracts_inline_data_when_text_missing():
 def test_falls_back_to_text_when_no_candidates():
     response = DummyResponse(candidates=[], text="fallback-json")
     assert AIService._extract_structured_text(response) == "fallback-json"
+
+
+def test_prefers_text_part_when_mime_is_text():
+    part = DummyPart(mime_type="text/plain", text='{"nodes": []}')
+    response = DummyResponse(parts=[part], text="")
+    assert AIService._extract_structured_text(response) == '{"nodes": []}'
+
+
+def test_returns_empty_string_when_only_thought_signature():
+    part = DummyPart(mime_type="application/x-thought", text=None)
+    response = DummyResponse(parts=[part], text="")
+    assert AIService._extract_structured_text(response) == ""

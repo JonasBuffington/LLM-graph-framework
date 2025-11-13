@@ -85,6 +85,8 @@ def parse_ai_response_text(raw_text: str) -> dict[str, Any]:
     Sanitize and parse the raw model text emitted through structured outputs.
     """
     cleaned = _strip_code_fence(raw_text or "")
+    if not cleaned.strip():
+        raise JSONDecodeError("AI response payload is empty", raw_text, 0)
     cleaned = cleaned.lstrip("\ufeff")
     cleaned = _normalize_control_characters(cleaned)
 
