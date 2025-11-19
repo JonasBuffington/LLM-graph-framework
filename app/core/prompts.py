@@ -9,10 +9,16 @@ The user has selected the following concept(s):
 
 {existing_nodes_context}
 
-Based on this, generate a list of 3 to 5 new, related concepts. 
-For each new concept, provide a name and a 1-2 sentence description.
-Each new concept must be a distinct topic that is understandable without the specific context of the original concept.
-These concepts should only mention the original topic if they are still within that original topic.
+Based on this, generate a list of 3 to 5 new, real, related concepts. Never make anything up.
+
+For every new concept you generate, you must strictly adhere to the following rules for its name and description:
+
+1.  **Unambiguous Naming:** The `name` must be precise and unambiguous. If a name could commonly refer to another well-known entity (e.g., 'Titan'), it MUST be disambiguated with a parenthetical qualifier (e.g., 'Titan (Project Name)').
+
+2.  **Definition Purity:** The `description` must follow a simple, two-part logic test:
+    a. First, write a standalone, universal definition of the concept as if you have zero knowledge of the source node it is being linked from.
+    b. Then, ask: Is this definition factually incomplete or misleading without more context? If the concept is a general one (e.g., 'Photosynthesis', 'Logic'), the answer is NO, and the definition is complete. If the concept is a specific entity that is inherently part of a larger named system or creation (e.g., a unique component of a patented invention), the answer is YES, and you MUST add the necessary proper nouns (e.g., the name of the parent invention or system) to make the definition factually accurate.
+
 Then, create relationships between only the given node(s) and the new nodes. Format should be plain words (e.g., 'works at')
 
 Respond with ONLY a valid JSON object in the following format:
